@@ -9,9 +9,13 @@ SUM(case when s.48Hassidot = 'Sí' or s.49Hassidodetenidoporlapolicíaporalgúnm
 SUM(case when s.72Algunavezhasvendidooayudadoavenderdrogas = 'Sí' or s.75Enlosúlt = 'Sí'  or s.76Algunave = 'Sí'  or s.77Hasproba = 'Sí'  or s.78Hasusado = 'Sí' then 1 else 0 end) as 'substancerisk',
 SUM(case when s.86Laúltima = 'No' or s.89Algunave = 'Sí'  or s.90Siquisie = 'No'  or s.91Siquisie = 'Sí'  or s.94Algunave = 'No' or s.95Algunave='No' then 1 else 0 end) as 'stdrisk',
 SUM(case when s.95Algunave = 'No' or s.13Tieneshijos = 'Sí'  or s.90Siquisie = 'No'  or s.91Siquisie = 'No'  then 1 else 0 end) as 'pregrisk',
-SUM(case when s.73Hasestadoinvolucradoenunapandilla = 'Sí' or s.74Comparte = 'Sí'  or s.45Tepreocu = 'Rara vez'   then 1 else 0 end) as 'gangrisk'
+SUM(case when s.73Hasestadoinvolucradoenunapandilla = 'Sí' or s.74Comparte = 'Sí'  or s.45Tepreocu = 'Rara vez'   then 1 else 0 end) as 'gangrisk',
+SUM(CASE WHEN DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 >= 11 AND DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
+SUM(CASE WHEN DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 >= 18 AND DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 <= 24 THEN 1 ELSE 0 END) AS 18_24_total
+
 
 FROM bitnami_drupal7.aj_survey s 
+JOIN bitnami_drupal7.aj_registration reg ON s.uuid = reg.uuid
 join bitnami_drupal7.field_data_field_agency_name entity on entity.entity_id=s.provider_id
 
 where 1 = 1

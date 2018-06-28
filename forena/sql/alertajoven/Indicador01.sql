@@ -5,7 +5,6 @@ FROM
     (SELECT 
         provider_id, 
      --    Les_15_Total,
-            Bet_15_35_Total,
        --     Gre_24_Total,
         --    Unk_Total,
         Fem_Total,
@@ -19,13 +18,14 @@ FROM
         rep_dom_total,
         haiti_total,
         otro_total,
+        Bet_11_24_Total,
         Grand_Total
     FROM
         (SELECT 
         IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
             provider_name,
             --  SUM(CASE WHEN age < 15 THEN 1 ELSE 0 END) AS Les_15_Total,
-            SUM(CASE WHEN age >= 15 AND age <= 35 THEN 1 ELSE 0 END) AS Bet_15_35_Total,
+            SUM(CASE WHEN age >= 11 AND age <= 24 THEN 1 ELSE 0 END) AS Bet_11_24_Total,
             --   SUM(CASE WHEN age > 24 THEN 1 ELSE 0 END) AS Gre_24_Total,
             --   SUM(CASE WHEN age is null THEN 1 ELSE 0 END) AS Unk_Total,
             sum(CASE WHEN sexo = 'F' THEN 1 ELSE 0 END) AS Fem_Total,
@@ -100,16 +100,16 @@ AND ( 52Enlosúlt= 'Sí' ||
                 WHEN provider_id = 'ALL_PROVIDERS' THEN 'ALL_PROVIDERS'
                 ELSE provider_name
             END AS provider_name,
-                Bet_15_35_Total_UNIVERSE,
+                Bet_11_24_Total_UNIVERSE,
                 Total_UNIVERSE
         FROM
             (SELECT 
             IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
                 provider_name,
                 SUM(CASE
-                    WHEN age >= 15 AND age <= 35 THEN 1
+                    WHEN age >= 11 AND age <= 24 THEN 1
                     ELSE 0
-                END) AS Bet_15_35_Total_UNIVERSE,
+                END) AS Bet_11_24_Total_UNIVERSE,
                 COUNT(uuid) AS Total_UNIVERSE
         FROM
             (SELECT DISTINCT

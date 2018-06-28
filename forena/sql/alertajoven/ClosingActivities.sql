@@ -29,7 +29,10 @@ provider,
         sum(case when sexo = 'M' and age > 14 then 1 else 0 end) as Mas_great_14_Total,
         SUM(CASE WHEN 9Dóndenaciste = 'República Dominicana' THEN 1 ELSE 0 END) AS rep_dom_total,
         SUM(CASE WHEN 9Dóndenaciste = 'Haití' THEN 1 ELSE 0 END) AS haiti_total,
-        SUM(CASE WHEN 9Dóndenaciste = 'Otro' THEN 1 ELSE 0 END) AS otro_total,   
+        SUM(CASE WHEN 9Dóndenaciste = 'Otro' THEN 1 ELSE 0 END) AS otro_total,
+        SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'rural') then 1 else 0 end) as rural,
+        SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'urbano') then 1 else 0 end) as urban,
+        SUM(case when provincia not in (select classification from bitnami_drupal7.provincia) then 1 else 0 end) as other_province, 
         count(uuid) as Total
 FROM
     (SELECT DISTINCT
@@ -38,7 +41,8 @@ FROM
             regs.uuid,
             survey.9Dóndenaciste,
             program_name,
-            provider
+            provider,
+            provincia
     FROM
         (SELECT 
         field_data_field_activity_name.entity_id AS activity_id,

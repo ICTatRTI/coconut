@@ -124,7 +124,24 @@ function ajregistration_form($form, &$form_state) {
 	    11 => t('PEDERNALES'),
 	    12 => t('HAITÍ'),
 		13 => t('MONTECRISTI'),
-	    14 => t('ELIAS PIÑA')
+	    14 => t('ELIAS PIÑA'),
+	    15 => t('NAGUA')
+	);
+	
+	$NaguaOptions = array(
+	    1 => t('RIO SAN JUAN'),
+	);
+	
+	$NaguaRioSanJuanOptions = array(
+	    1 => t('BARRIO HOSPITAL'),
+	    2 => t('ACAPULCO'),
+	    3 => t('BUENOS AIRES'),
+	    4 => t('GALLERA VIEJA'),
+	    5 => t('CENTRO DEL PUEBLO'),
+	    6 => t('NEW YORK CHIQUITO'),
+	    7 => t('ARROYO GRANDE'),
+	    8 => t('SANTA LUCIA'),
+	    9 => t('GREGORIO LUPERON'),
 	);
 	
 	$EliasPinaOptions = array(
@@ -757,6 +774,22 @@ function ajregistration_form($form, &$form_state) {
 	    ),
 	);
 	
+	$form['2C_nagua'] = array(
+	    '#type' => 'select',
+	    '#title' => t('2. Municipio:'),
+	    '#required' => false,
+	    '#options' => drupal_map_assoc($NaguaOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="2D"]' => array('value' => 'NAGUA'),
+	        ),
+	        'required' => array (
+	            'select[name="2D"]' => array('value' => 'NAGUA'),
+	        )
+	    ),
+	);
+	
 	$form['2C_montecristi'] = array(
 	    '#type' => 'select',
 	    '#title' => t('2. Municipio:'),
@@ -978,6 +1011,23 @@ function ajregistration_form($form, &$form_state) {
 	        ),
 	        'required' => array (
 	            'select[name="2D"]' => array('value' => 'ELIAS PIÑA'),
+	        )
+	    ),
+	);
+	
+	$form['2B_nagua_rio_san_juan'] = array(
+	    '#type' => 'select',
+	    '#title' => t('2. Barrio/Comunidad:'),
+	    '#required' => FALSE,
+	    '#options' => drupal_map_assoc($NaguaRioSanJuanOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="2C_nagua"]' => array('value' => 'RIO SAN JUAN'),
+	            'select[name="2D"]' => array('value' => 'NAGUA'),
+	        ),
+	        'required' => array (
+	            'select[name="2D"]' => array('value' => 'NAGUA'),
 	        )
 	    ),
 	);
@@ -1904,6 +1954,12 @@ function ajregistration_form_submit($form, &$form_state) {
              case 'PEDRO SANTANA':  $_2B = ($form_state['values']['2B_elias_pina_pedro_santana'] === 'OTRO'? $form_state['values']['2B_Otro']:$form_state['values']['2B_elias_pina_pedro_santana']); break;
            }
            break;
+         case 'NAGUA':
+           $_2C = $form_state['values']['2C_nagua'];
+           switch ($_2C) {
+             case 'RIO SAN JUAN': $_2B = ($form_state['values']['2B_nagua_rio_san_juan'] === 'OTRO'? $form_state['values']['2B_Otro']:$form_state['values']['2B_nagua_rio_san_juan']); break;
+           }
+           break;
 		}
 
  		$_regDate = $form_state['values']['registration_date'];
@@ -2125,6 +2181,22 @@ function ajregistration_form_submit($form, &$form_state) {
 
 	// Municipios and Barrios
  		switch($form_state['values']['2D']) {
+ 		  case 'NAGUA':
+ 		    $_2C = $form_state['values']['2C_nagua'];
+ 		    switch ($_2C) {
+ 		      case 'RIO SAN JUAN':
+ 		        if(empty($form_state['values']['2B_nagua_rio_san_juan']))
+ 		          form_error($form['2B_nagua_rio_san_juan'], t('2. Barrio/Comunidad: Campo obligatorio'));
+ 		          else if ($form_state['values']['2B_nagua_rio_san_juan'] === 'OTRO') {
+ 		            if(empty($form_state['values']['2B_Otro'])){
+ 		              form_error($form['2B_Otro'], t('2. Barrio/Comunidad Otro: Campo obligatorio'));
+ 		            }
+ 		          }
+ 		          break;
+ 		      default:
+ 		        form_error($form['2C_nagua'], t('2. Municipio: Campo obligatorio')); break;
+ 		    }
+ 		    break;
  		  case 'ELIAS PIÑA':
  		    $_2C = $form_state['values']['2C_elias_pina'];
  		    switch ($_2C) {

@@ -31,7 +31,7 @@ FROM
     sum(CASE WHEN sexo = 'M' THEN 1 ELSE 0 END) AS Mas_Total,
     SUM(CASE WHEN Sexo != 'M' AND Sexo != 'F' THEN 1 ELSE 0 END) AS Unk_Total,
     SUM(CASE WHEN age < 11 THEN 1 ELSE 0 END) AS less_11_total,
-    SUM(CASE WHEN sexo = 'F' AND age >= 11 AND age <= 14 THEN 1 ELSE 0 END) AS fem_11_14_total,
+    SUM(CASE WHEN sexo = 'F' AND age >= 0 AND age <= 14 THEN 1 ELSE 0 END) AS fem_11_14_total, -- Includes less than 11 years
     SUM(CASE WHEN sexo = 'M' AND age >= 11 AND age <= 14 THEN 1 ELSE 0 END) AS mas_11_14_total,
     SUM(CASE WHEN age >= 11 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
     SUM(CASE WHEN age >= 18 AND age <= 24 THEN 1 ELSE 0 END) AS 18_24_total,

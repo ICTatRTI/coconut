@@ -38,10 +38,12 @@ select provider_id,
         SUM(CASE WHEN 9Dóndenaciste = 'República Dominicana' THEN 1 ELSE 0 END) AS rep_dom_total,
         SUM(CASE WHEN 9Dóndenaciste = 'Haití' THEN 1 ELSE 0 END) AS haiti_total,
         SUM(CASE WHEN 9Dóndenaciste = 'Otro' THEN 1 ELSE 0 END) AS otro_total,   
+        SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'rural') then 1 else 0 end) as rural,
+        SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'urbano') then 1 else 0 end) as urban,
 		count(uuid) as Total
 from
 (
-Select distinct provider_id, provider_name, uuid, sexo, age, 9Dóndenaciste
+Select distinct provider_id, provider_name, uuid, sexo, age, 9Dóndenaciste, provincia
 from (
 SELECT 
 		reg.uuid,
@@ -49,6 +51,7 @@ SELECT
 		reg.Apellido,
 		reg.sexo,
 		reg.dob,
+		reg.provincia,
 		9Dóndenaciste,
 		DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y')+0 AS age,
 		provider.entity_id as provider_id,
