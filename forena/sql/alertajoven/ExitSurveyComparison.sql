@@ -277,12 +277,12 @@ SELECT
     exi.23EstatusdeSalida as '(S)P23-EstatusDeSalida'
 FROM
     bitnami_drupal7.aj_exit exi
-        JOIN
+            JOIN
     bitnami_drupal7.aj_registration reg ON exi.uuid = reg.uuid
+            JOIN
+    bitnami_drupal7.field_data_field_agency_name provider ON exi.provider_id = provider.entity_id
         JOIN
     bitnami_drupal7.aj_survey survey ON exi.uuid = survey.uuid
-        JOIN
-    bitnami_drupal7.field_data_field_agency_name provider ON exi.provider_id = provider.entity_id
 where provider.entity_id in (:provider_id)
 --IF=:from_date_survey
 and survey.createdAt >= :from_date_survey

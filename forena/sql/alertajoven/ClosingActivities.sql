@@ -5,16 +5,16 @@ provider,
         sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
         SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Sex_Total,
         sum(case when age < 11 then 1 else 0 end) as Less_11_Total, 
-        sum(case when age >= 11 and age <=17 then 1 else 0 end) as Bet_11_17_Total,
+        sum(case when age >= 0 and age <=17 then 1 else 0 end) as Bet_11_17_Total, -- incluye menores de 11
         sum(case when age >= 18 and age <= 24 then 1 else 0 end) as Bet_18_24_Total,
         sum(case when age > 24 then 1 else 0 end) as greater_24_Total,
         sum(case when age is null then 1 else 0 end) as unk_age_Total,
         sum(case when sexo = 'F' and age <11 then 1 else 0 end) as Fem_less_11_Total,
-        sum(case when sexo = 'F' and age >=11 and age <=14 then 1 else 0 end) as Fem_11_14_Total,
-        sum(case when age >=11 and age <=17 then 1 else 0 end) as 11_17_Total,
+        sum(case when sexo = 'F' and age >=0 and age <=14 then 1 else 0 end) as Fem_11_14_Total, -- INCLUYE MENORES DE 11!!!
+        sum(case when age >=0 and age <=17 then 1 else 0 end) as 11_17_Total,  -- INCLUYE MENORES DE 11!!!
         sum(case when age >=18 and age <=24 then 1 else 0 end) as 18_24_Total,
-        sum(case when sexo = 'F' and age >=11 and age <=17 then 1 else 0 end) as Fem_11_17_Total,
-        sum(case when sexo = 'M' and age >=11 and age <=17 then 1 else 0 end) as Mas_11_17_Total,
+        sum(case when sexo = 'F' and age >=0 and age <=17 then 1 else 0 end) as Fem_11_17_Total, -- incluye menores de 11
+        sum(case when sexo = 'M' and age >=0 and age <=17 then 1 else 0 end) as Mas_11_17_Total, -- incluye menores de 11
         sum(case when sexo = 'F' and age >=15 and age <=19 then 1 else 0 end) as Fem_15_19_Total,
         sum(case when sexo = 'M' and age >=15 and age <=19 then 1 else 0 end) as Mas_15_19_Total,
         sum(case when sexo = 'F' and age >=18 and age <=24 then 1 else 0 end) as Fem_18_24_Total,
@@ -25,14 +25,14 @@ provider,
         SUM(CASE WHEN sexo = 'M' AND age >= 25 AND age <= 29 THEN 1 ELSE 0 END) AS mas_25_29_total,
         sum(case when sexo = 'F' and age > 14 then 1 else 0 end) as Fem_great_14_Total,
         sum(case when sexo = 'M' and age < 11 then 1 else 0 end) as Mas_less_11_Total,
-        sum(case when sexo = 'M' and age >= 11 and age <= 14 then 1 else 0 end) as Mas_11_14_Total,
+        sum(case when sexo = 'M' and age >= 0 and age <= 14 then 1 else 0 end) as Mas_11_14_Total,  -- INCLUYE MENORES DE 11!!!
         sum(case when sexo = 'M' and age > 14 then 1 else 0 end) as Mas_great_14_Total,
         SUM(CASE WHEN 9Dóndenaciste = 'República Dominicana' THEN 1 ELSE 0 END) AS rep_dom_total,
         SUM(CASE WHEN 9Dóndenaciste = 'Haití' THEN 1 ELSE 0 END) AS haiti_total,
         SUM(CASE WHEN 9Dóndenaciste = 'Otro' THEN 1 ELSE 0 END) AS otro_total,
         SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'rural') then 1 else 0 end) as rural,
         SUM(case when provincia in (select name from bitnami_drupal7.provincia where classification = 'urbano') then 1 else 0 end) as urban,
-        SUM(case when provincia not in (select classification from bitnami_drupal7.provincia) then 1 else 0 end) as other_province, 
+        SUM(case when provincia not in (select name from bitnami_drupal7.provincia) then 1 else 0 end) as other_province, 
         count(uuid) as Total
 FROM
     (SELECT DISTINCT

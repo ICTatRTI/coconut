@@ -144,10 +144,7 @@ function ajexit_form($form, &$form_state) {
 			2 => t('No'),
 			3 => t('Ya Tenia'),
 	);	
-	
 
-	
-	
 	
 	$form['documentation']['9'] = array(
 		'#type' => 'radios',

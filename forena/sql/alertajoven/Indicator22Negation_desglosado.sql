@@ -16,9 +16,6 @@ FROM
     bitnami_drupal7.field_data_field_agency_name agency on reg.provider_id = agency.entity_id
 WHERE
   1 = 1 
-  
-  and reg.provider_id in (:provider_id) 
-  
 --SWITCH=:collateral
 -- estecolateralparticipante can have 1 of 4 values: No, Si, No Sabe (which means Don't know), blank (which means no value, not set)
 --CASE=collateral
@@ -39,9 +36,9 @@ and reg.provider_id in (:provider_id)
 --END
 
 AND (
-(1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí')
-OR (8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_3Cambiastedelugardetrabajodespues = 'Sí' AND 8_1Considerasquetutrabajoactual = 'Sí')
-OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Sí')
-OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Ya tenía un negocio' AND 16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí')
+(4_Actualmentetienesuntrabajoenel in ('No', ''))
+AND (8_Cuandoiniciasteelcursotecnicoyaestabas in ('No', ''))
+AND (13_Hasrecibidounprestamoatravesdelproyecto in ('No', '') AND 14_Tienesunnegociopropio in ('No', ''))
+AND (16_Siyateniasunnegocioconsiderasquedespuesdel in ('No', ''))
 )
 GROUP BY UUID

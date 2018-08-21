@@ -1,6 +1,6 @@
 --ACCESS=access content
 select * from (
-	SELECT 
+    SELECT 
     provider_id,
     CASE
         WHEN provider_id = 'ALL_PROVIDERS' THEN 'ALL_PROVIDERS'
@@ -20,15 +20,15 @@ select * from (
     Grand_Total
 FROM
     (select
-	IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
+    IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
     provider_name,
     sum(case when sexo = 'F' then 1 else 0 end) as Fem_Total,
-	sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
-	SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Total,
-	SUM(CASE WHEN age >= 11 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
-	SUM(CASE WHEN age >= 18 AND age <= 24 THEN 1 ELSE 0 END) AS 18_24_total,
-	SUM(CASE WHEN sexo = 'F' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS fem_15_19_total,
-	SUM(CASE WHEN sexo = 'M' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS mas_15_19_total,
+    sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
+    SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Total,
+    SUM(CASE WHEN age >= 11 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
+    SUM(CASE WHEN age >= 18 AND age <= 24 THEN 1 ELSE 0 END) AS 18_24_total,
+    SUM(CASE WHEN sexo = 'F' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS fem_15_19_total,
+    SUM(CASE WHEN sexo = 'M' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS mas_15_19_total,
     SUM(CASE WHEN sexo = 'F' AND age >= 20 AND age <= 24 THEN 1 ELSE 0 END) AS fem_20_24_total,
     SUM(CASE WHEN sexo = 'M' AND age >= 20 AND age <= 24 THEN 1 ELSE 0 END) AS mas_20_24_total,
     SUM(CASE WHEN sexo = 'F' AND age >= 25 AND age <= 29 THEN 1 ELSE 0 END) AS fem_25_29_total,
@@ -71,10 +71,10 @@ and reg.provider_id in (:provider_id)
 --END
 
 AND (
-(1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí')
-OR (8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_3Cambiastedelugardetrabajodespues = 'Sí' AND 8_1Considerasquetutrabajoactual = 'Sí')
-OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Sí')
-OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Ya tenía un negocio' AND 16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí')
+(4_Actualmentetienesuntrabajoenel in ('No', ''))
+AND (8_Cuandoiniciasteelcursotecnicoyaestabas in ('No', ''))
+AND (13_Hasrecibidounprestamoatravesdelproyecto in ('No', '') AND 14_Tienesunnegociopropio in ('No', ''))
+AND (16_Siyateniasunnegocioconsiderasquedespuesdel in ('No', ''))
 )
 GROUP BY UUID) uniqueRecords
 group by provider_id WITH ROLLUP) rollUP)  as tb1
@@ -82,7 +82,7 @@ group by provider_id WITH ROLLUP) rollUP)  as tb1
 RIGHT JOIN
 
 (
-	SELECT 
+    SELECT 
     provider_id,
     CASE
         WHEN provider_id = 'ALL_PROVIDERS' THEN 'ALL_PROVIDERS'
@@ -94,11 +94,11 @@ RIGHT JOIN
     Universe_Total
 FROM
     (select
-	IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
+    IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
     provider_name,
     sum(case when sexo = 'F' then 1 else 0 end) as Universe_Fem_Total,
-	sum(case when sexo = 'M' then 1 else 0 end) as Universe_Mas_Total,
-	SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Universe_Unk_Total,
+    sum(case when sexo = 'M' then 1 else 0 end) as Universe_Mas_Total,
+    SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Universe_Unk_Total,
     count(distinct uuid) as Universe_Total
     from
 (

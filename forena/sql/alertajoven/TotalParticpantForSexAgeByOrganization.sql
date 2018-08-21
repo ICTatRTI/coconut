@@ -15,7 +15,7 @@ select provider_id,
 		sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
 		SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Total,
 		sum(case when age < 11 then 1 else 0 end) as Less_11_Total, 
-		sum(case when age >= 11 and age <=17 then 1 else 0 end) as Bet_11_17_Total,
+		sum(case when age >= 0 and age <=17 then 1 else 0 end) as Bet_11_17_Total, -- INCLUYE MENORES DE 11!!!
 		sum(case when age >= 18 and age <= 24 then 1 else 0 end) as Bet_18_24_Total,
 	--	sum(case when age > 24 then 1 else 0 end) as greater_24_Total,
 		sum(case when age is null then 1 else 0 end) as unk_age_Total,
@@ -23,8 +23,8 @@ select provider_id,
 		sum(case when sexo = 'F' and age <=14 then 1 else 0 end) as Fem_11_14_Total, -- INCLUYE MENORES DE 11!!!
 	--	sum(case when sexo = 'F' and age > 14 then 1 else 0 end) as Fem_great_14_Total,
 		sum(case when sexo = 'M' and age < 11 then 1 else 0 end) as Mas_less_11_Total,
-		sum(case when sexo = 'F' and age >=11 and age <=17 then 1 else 0 end) as Fem_11_17_Total,
-        sum(case when sexo = 'M' and age >=11 and age <=17 then 1 else 0 end) as mas_11_17_Total,
+		sum(case when sexo = 'F' and age >=0 and age <=17 then 1 else 0 end) as Fem_11_17_Total, -- INCLUYE MENORES DE 11!!!
+        sum(case when sexo = 'M' and age >=0 and age <=17 then 1 else 0 end) as mas_11_17_Total, -- INCLUYE MENORES DE 11!!!
 		sum(case when sexo = 'M' and age <= 14 then 1 else 0 end) as Mas_11_14_Total, -- INCLUYE MENORES DE 11!!!
 	--	sum(case when sexo = 'M' and age > 14 then 1 else 0 end) as Mas_great_14_Total,
 	    sum(case when sexo = 'F' and age >=15 and age <=19 then 1 else 0 end) as Fem_15_19_Total,

@@ -74,9 +74,9 @@ function ajlabor_form($form, &$form_state) {
 // 			);
 // 			return $form;
 // 		} else {
-			$editing = true;
-			$label = '<p>Estás <b>****EDITANDO****</b> una Encuesta de Inserción Laboral para <b>'.$beneficiaryDetails.'</b></p>';
+			$editing = false;
 			$existingLaborForm = _ajlabor_getExistingLaborForm($uuid);
+			$label = '<p>Estás <b>****EDITANDO****</b> la <b>version '.$existingLaborForm['version'].'</b> de la Encuesta de Inserción Laboral para <b>'.$beneficiaryDetails.'</b></p>';
 // 		}
 	} else {
 		$label = '<p>Estás creando una <b>NUEVA</b> Encuesta de Inserción Laboral para <b>'.$beneficiaryDetails.'</b></p>';
@@ -131,17 +131,14 @@ function ajlabor_form($form, &$form_state) {
 	);
 	
 	$form['initial']['0'] = array(
-	    '#type' => 'date',
+	    '#type' => 'date_popup',
 	    '#title' => t('1. Fecha de llenado:'),
-	    '#default_value' => (isset($existingLaborForm)? array(
-	        'year' => date("Y", strtotime($existingLaborForm['0_fechadellenado'])),
-	        'month' => date("m", strtotime($existingLaborForm['0_fechadellenado'])),
-	        'day' => date("d", strtotime($existingLaborForm['0_fechadellenado']))
-	    ):null),
+	    '#date_format' => 'd M Y',
+	    '#default_value' => (isset($existingLaborForm)? date("Y-m-d H:i:s", strtotime($existingLaborForm['0_fechadellenado'])) : null),
 	    '#required' => TRUE,
 	    '#disabled' => $editing,
 	);
-
+	
 	$form['initial']['1'] = array(
 		'#type' => 'select',
 		'#title' => t('2. ¿Has participado en algún curso del proyecto Alerta Joven en el que te enseñaron algo que te puede servir para trabajar?'),
@@ -398,8 +395,8 @@ function ajlabor_form($form, &$form_state) {
 	    '#required' => FALSE,
 	    '#states' => array(
 	        'visible' => array (
-	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
-	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí'))),
 	        ),
 	    ),
 	);
@@ -418,8 +415,8 @@ function ajlabor_form($form, &$form_state) {
 			'#required' => FALSE,
 			'#states' => array(
 					'visible' => array (
-					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
-					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí'))),
 					),
 			),
 	);
@@ -444,8 +441,8 @@ function ajlabor_form($form, &$form_state) {
 	    '#required' => FALSE,
 	    '#states' => array(
 	        'visible' => array (
-	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
-	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí'))),
 	        ),
 	    ),
 	);
@@ -663,6 +660,8 @@ function ajlabor_form_submit($form, &$form_state) {
 	$beneficiary = _ajlabor_getBeneficiaryInfo($uuid);
 	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
 	
+	echo $form_state['values']['0'];
+	
 	_ajlabor_insert_data(
 	        $form_state['values']['0'],	   
 			$form_state['values']['1'],
@@ -819,7 +818,7 @@ function ajlabor_form_submit($form, &$form_state) {
 		}
 		
 		
-		if($_4 === 'Sí'|| $_4 === 'No') {
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí') {
 		  if (empty($_8_0)) {
 		    form_error($form['laboral']['8_0'], t('11. ¿Cambiaste de lugar de trabajo después de la capacitación de Alerta Joven?: Campo requerido'));
 		  }
@@ -827,7 +826,7 @@ function ajlabor_form_submit($form, &$form_state) {
 		  $form_state['values']['8_0'] = '';
 		}
 		
-		if($_4 === 'Sí'|| $_4 === 'No') {
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí') {
 		  if (empty($_8_1)) {
 		    form_error($form['laboral']['8_1'], t('12. ¿Consideras que tu trabajo actual es mejor que el anterior?: Campo requerido'));
 		  }
@@ -835,13 +834,13 @@ function ajlabor_form_submit($form, &$form_state) {
 		  $form_state['values']['8_1'] = '';
 		}
 		
-// 		if($_4 === 'Sí'|| $_4 === 'No') {
-// 		  if (empty($_8_2)) {
-// 		    form_error($form['laboral']['8_2'], t('13. ¿Por qué considera que es un mejor empleo?: Campo requerido'));
-// 		  }
-// 		} else {
-// 		  $form_state['values']['8_2'] = '';
-// 		}
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí') {
+		  if (empty($_8_2)) {
+		    form_error($form['laboral']['8_2'], t('13. ¿Por qué considera que es un mejor empleo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_2'] = '';
+		}
 		
 		if (empty($_13)) {
 			form_error($form['credits']['13'], t('14. ¿Has recibido algún apoyo del proyecto Alerta Joven para montar un negocio/emprender?: Campo requerido'));
@@ -876,7 +875,6 @@ function ajlabor_form_submit($form, &$form_state) {
 		  $form_state['values']['13_2'] = '';
 		  $form_state['values']['14_1'] = '';
 		}
-		print($form_state['values']['16']);
 		
 		if (empty($_14) || $_14 === 'No' || $_14 === '' || $_14 === 'Ya tenía un negocio') {		  
 		  $form_state['values']['16'] = '';
@@ -973,7 +971,6 @@ function ajlabor_form_submit($form, &$form_state) {
 	} else {
 	  $form_state['values']['8_2Otro'] = '';
 	}
-	print($form_state['values']['16']);
 	
  }
 
@@ -1033,7 +1030,7 @@ function _ajlabor_insert_data(
 	
 	global $user;
 	$currentDate = format_date(time(), 'custom', 'Y-m-d H:i:s');
-	$fechaDeLlenado = format_date(strtotime($_0['year'].'-'.$_0['month'].'-'.$_0['day']), 'custom', 'Y-m-d H:i:s');
+	$fechaDeLlenado = format_date(strtotime($_0), 'custom', 'Y-m-d H:i:s');
 
 	$tableFields =  array(
 		'user_name' => $user->name,
@@ -1067,17 +1064,18 @@ function _ajlabor_insert_data(
 	    '18_Quiencontactoalparticipante' => $_18,
 	);
 	
-	if(_ajlabor_alreadyExist($uuid)) { // Updating existing labor form
-		$tableFields['changed'] = $currentDate;
-		$labor_entry = db_update('aj_labor')->fields($tableFields)->condition('uuid', $uuid);
-		$labor_entry->execute();
-	} else { // creating new labor form entry
+// 	if(_ajlabor_alreadyExist($uuid)) { // Updating existing labor form
+// 		$tableFields['changed'] = $currentDate;
+// 		$labor_entry = db_update('aj_labor')->fields($tableFields)->condition('uuid', $uuid);
+// 	} else { // creating new labor form entry
+	    $tableFields['version'] = _ajlabor_getExistingLaborForm($uuid)['version'] + 1;
 		$tableFields['created'] = $currentDate;
 		$tableFields['uuid'] = $uuid;
 		$tableFields['provider_id'] = $provider_id;
 		$labor_entry = db_insert('aj_labor')->fields($tableFields);
 		$labor_entry->execute();
-	}
+// 	}
+	
 }
 
 /**
@@ -1153,7 +1151,8 @@ function _ajlabor_getExistingLaborForm($uuid) {
 	$query = db_query(
 			'SELECT * 
 			FROM {aj_labor}
-			WHERE uuid = :uuid',
+			WHERE uuid = :uuid
+            AND version = (SELECT max(version) FROM {aj_labor} WHERE uuid = :uuid GROUP BY uuid)',
 			array(
 					':uuid' => $uuid
 			));
