@@ -2,9 +2,9 @@
 SELECT
 SUM(case when sub.Sexo = 'M' then 1 else 0 end) as 'Male', 
 SUM(case when sub.Sexo = 'F' then 1 else 0 end) as 'Female',
-SUM(CASE WHEN sexo = 'F' AND age >= 11 AND age <= 14 THEN 1 ELSE 0 END) AS fem_11_14_total,
-SUM(CASE WHEN sexo = 'M' AND age >= 11 AND age <= 14 THEN 1 ELSE 0 END) AS mas_11_14_total,
-SUM(CASE WHEN age >= 11 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
+SUM(CASE WHEN sexo = 'F' AND age >= 10 AND age <= 14 THEN 1 ELSE 0 END) AS fem_11_14_total,
+SUM(CASE WHEN sexo = 'M' AND age >= 10 AND age <= 14 THEN 1 ELSE 0 END) AS mas_11_14_total,
+SUM(CASE WHEN age >= 10 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
 SUM(CASE WHEN age >= 18 AND age <= 24 THEN 1 ELSE 0 END) AS 18_24_total,
 SUM(CASE WHEN sexo = 'F' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS fem_15_19_total,
 SUM(CASE WHEN sexo = 'M' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS mas_15_19_total,
@@ -14,9 +14,9 @@ SUM(CASE WHEN 9Dóndenaciste = 'República Dominicana' THEN 1 ELSE 0 END) AS rep
 SUM(CASE WHEN 9Dóndenaciste = 'Haití' THEN 1 ELSE 0 END) AS haiti_total,
 SUM(CASE WHEN 9Dóndenaciste = 'Otro' THEN 1 ELSE 0 END) AS otro_total, 
 count(distinct uuid) as Grand_Total,  
-sub.ProgramName as 'ProgramName', 
+IFNULL(ProgramName, '_ALL_PROGRAMS') AS 'ProgramName', 
 sub.provider_id as 'provider_id',
-sub.Provider as 'Provider'
+IFNULL(Provider, '_ALL_PROVIDERS') AS 'Provider'
 FROM (
 SELECT distinct reg.uuid, reg.SEXO, reg.DOB, reg.fecha, 
 DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
@@ -59,8 +59,8 @@ and adate.field_activity_date_value >= :from_date
 and adate.field_activity_date_value <= :to_date
 --END
 
-group by reg.uuid, pnamename.field_programname_name_value ) sub
-group by sub.provider_id, sub.ProgramName
+group by reg.uuid, pnamename.field_programname_name_value) sub
+group by sub.Provider, sub.ProgramName WITH ROLLUP
 
 
 

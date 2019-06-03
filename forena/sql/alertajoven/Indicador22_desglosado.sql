@@ -5,6 +5,13 @@ SELECT distinct
     reg.apellido,
     reg.sexo,
     reg.dob,
+    reg.barrioComunidad,
+    reg.calleynumero,
+    reg.municipio,
+    reg.provincia,
+    reg.casa,
+    reg.celular,
+    reg.télefono as telefono,
     DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
     reg.provider_id,
     agency.field_agency_name_value as provider_name
@@ -38,10 +45,18 @@ and SUBSTRING(labor.created, 1, 10) <= :to_date
 and reg.provider_id in (:provider_id) 
 --END
 
-AND (
+AND
+case 
+when :job_type = 'all' then (
 (1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí')
 OR (8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_3Cambiastedelugardetrabajodespues = 'Sí' AND 8_1Considerasquetutrabajoactual = 'Sí')
 OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Sí')
 OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Ya tenía un negocio' AND 16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí')
 )
+when :job_type = 'NuevoEmpleo' then 1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí'
+when :job_type = 'MejorEmpleo' then 8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_3Cambiastedelugardetrabajodespues = 'Sí' AND 8_1Considerasquetutrabajoactual = 'Sí'
+when :job_type = 'NuevoEmprendimiento' then 13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Sí'
+when :job_type = 'MejorEMprendimiento' then 13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Ya tenía un negocio' AND 16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí'
+end
+
 GROUP BY UUID

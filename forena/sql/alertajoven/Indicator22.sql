@@ -71,7 +71,7 @@ and reg.provider_id in (:provider_id)
 --END
 
 AND (
-(1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí')
+   (1_HasparticipadoenalguncursodelproyectoAlerta = 'Sí' AND 4_Actualmentetienesuntrabajoenel = 'Sí')
 OR (8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_3Cambiastedelugardetrabajodespues = 'Sí' AND 8_1Considerasquetutrabajoactual = 'Sí')
 OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Sí')
 OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio = 'Ya tenía un negocio' AND 16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí')

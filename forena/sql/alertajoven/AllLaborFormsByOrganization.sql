@@ -4,6 +4,7 @@ SELECT `labor`.`provider_id`,
    if(NOW() - INTERVAL 3 MONTH < labor.`created` and`4_Actualmentetienesuntrabajoenel` = 'No' and `9_Enlosultimos12meseshashecho` = 'No', 'Editable', 'Finalizada') as EstatusDeEncuesta,
     labor.user_name,
     labor.uuid,
+    labor.version,
     nombre,
     apellido,
     sexo,
@@ -61,10 +62,10 @@ where 1 = 1
 
 and labor.provider_id in (:provider_id)
 --IF=:from_date
-and labor.created >= :from_date
+AND SUBSTRING(labor.created, 1, 10) >= :from_date
 --END
 --IF=:to_date
-and labor.created <= :to_date
+AND SUBSTRING(labor.created, 1, 10) <= :to_date
 --END
 
 --IF=:from_date_reg

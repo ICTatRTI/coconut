@@ -1,6 +1,6 @@
 SELECT 
-provider,
-    program_name,
+IFNULL(provider, '_ALL_PROVIDERS') AS 'provider',
+    IFNULL(program_name, '_ALL_PROGRAMS') AS 'program_name',
         sum(case when sexo = 'F' then 1 else 0 end) as Fem_Total,
         sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
         SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Sex_Total,
@@ -108,4 +108,4 @@ and regs.Fecha<= :to_date_reg
 --END
 
 ) allParticipants
-GROUP BY provider, program_name
+GROUP BY provider, program_name WITH ROLLUP

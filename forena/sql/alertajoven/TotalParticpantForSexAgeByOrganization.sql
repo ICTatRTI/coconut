@@ -1,6 +1,6 @@
 --ACCESS=access content
 select provider_id,
-		provider_name,
+		IFNULL(provider_name, '_ALL_PROVIDERS') AS 'provider_name',
 --IF=:program_id
  		(select group_concat(field_programname_name_value) from bitnami_drupal7.field_data_field_programname_name where entity_id in (:program_id)) as target_programs,
 --ELSE
@@ -103,5 +103,4 @@ and adate.field_activity_date_value <= :to_date
 order by provider_id) 
 as ParticipantXProviderXProgramXActivityTemp)
  as NoDuplicateduuid
-group by provider_id
-order by provider_name;
+group by provider_name WITH ROLLUP

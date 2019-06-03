@@ -78,7 +78,7 @@ function ajexitactivities_form($form, &$form_state) {
 			case 'Estrella Jóvenes':
 			  $activityNamesOpt[$record->entity_id . '_7'] = t('Jóvenes que han completado Estrella Jóvenes ' . $suffix);
 			  break;
-			case 'Quantum learning Estudiantes':
+			case 'Quantum Learning Estudiantes':
 			  $activityNamesOpt[$record->entity_id . '_8'] = t('Jóvenes que han completado QLS ' . $suffix);
 			  break;
 			default:

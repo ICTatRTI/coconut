@@ -8,11 +8,16 @@ reg.Apellido,
  reg.BarrioComunidad,
  reg.Municipio,
   reg.DOB, 
+  DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
+  9Dóndenaciste,
+  9Dóndenacisteotro,
+  13Tieneshijos,
   COUNT(atten.uuid) as "Health Services Received", 
   field_agency_name_value
 FROM
 	bitnami_drupal7.aj_attendance atten 
 join bitnami_drupal7. aj_registration reg ON reg.uuid = atten.uuid
+LEFT join bitnami_drupal7. aj_survey survey ON survey.uuid = atten.uuid
 join bitnami_drupal7.field_data_field_agency_name provider on provider.entity_id=atten.provider_id
 join bitnami_drupal7.field_data_field_activity_name aname on aname.entity_id=atten.activity_id
 join bitnami_drupal7.field_data_field_activity_date adate on adate.entity_id=atten.activity_id

@@ -1,13 +1,28 @@
 --ACCESS=access content
-SELECT distinct
+Select * from (SELECT distinct
+    version,
     reg.uuid,
     reg.nombre,
     reg.apellido,
     reg.sexo,
     reg.dob,
+    reg.Calleynumero,
+    reg.BarrioComunidad,
+    reg.Municipio,
+    reg.Provincia,
+    reg.Casa,
+    reg.Celular,
+    reg.Teléfono,
     DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
     reg.provider_id,
-    agency.field_agency_name_value as provider_name
+    agency.field_agency_name_value as provider_name,
+    4_Actualmentetienesuntrabajoenel,
+    8_Cuandoiniciasteelcursotecnicoyaestabas,
+    8_3Cambiastedelugardetrabajodespues,
+    8_1Considerasquetutrabajoactual,
+    13_Hasrecibidounprestamoatravesdelproyecto,
+    14_Tienesunnegociopropio,
+    16_Siyateniasunnegocioconsiderasquedespuesdel
 FROM
     bitnami_drupal7.aj_labor labor
         JOIN
@@ -35,10 +50,14 @@ and SUBSTRING(labor.created, 1, 10) <= :to_date
 and reg.provider_id in (:provider_id) 
 --END
 
-AND (
+AND version = (SELECT max(version) FROM bitnami_drupal7.aj_labor temp WHERE temp.uuid = labor.uuid)
+
+GROUP BY UUID) as tb1
+WHERE
 (4_Actualmentetienesuntrabajoenel in ('No', ''))
-AND (8_Cuandoiniciasteelcursotecnicoyaestabas in ('No', ''))
-AND (13_Hasrecibidounprestamoatravesdelproyecto in ('No', '') AND 14_Tienesunnegociopropio in ('No', ''))
+AND ( 8_3Cambiastedelugardetrabajodespues in ('No', '') 
+      AND 8_1Considerasquetutrabajoactual in ('No', '')
+    )
+AND (14_Tienesunnegociopropio in ('No', 'Ya tenía un negocio', ''))
 AND (16_Siyateniasunnegocioconsiderasquedespuesdel in ('No', ''))
-)
-GROUP BY UUID
+

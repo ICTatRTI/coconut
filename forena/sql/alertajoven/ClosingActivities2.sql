@@ -53,8 +53,6 @@ and field_data_field_activity_date.field_activity_date_value <= :to_date
 --END
 
 
-
-
 ) AS allActivities
     JOIN bitnami_drupal7.aj_attendance atten ON atten.activity_id = allActivities.activity_id
     JOIN bitnami_drupal7.aj_registration regs ON regs.uuid = atten.uuid
