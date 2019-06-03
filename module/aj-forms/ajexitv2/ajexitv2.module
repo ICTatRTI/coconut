@@ -1,0 +1,4240 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajexitv2_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajexitv2":
+			return '<p>' . t("Implementation of the Exit Form V2") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajexitv2_menu() {
+	$items = array();
+
+	$items['ajexitv2'] = array(
+		'title' => 'Exit form V2',
+		'description' => 'Form to collect data of the exiting beneficiary',
+		'page callback' => '_ajexitv2_page',
+    	'page arguments' => array('ajexitv2_form'),
+		'access arguments' => array('access ajexitv2 content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+ /**
+  *  Page callback: Current users settings
+  *  @see current_users_menu()
+  */
+
+ 
+function ajexitv2_form($form, &$form_state) {
+  
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+
+	$beneficiary = _ajexitv2_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
+
+	if (_ajexitv2_alreadyExist($uuid)) {
+		drupal_set_message(t('Ya existe un Formulario de Salida disponible para <b>'.$beneficiaryDetails.'</b>'), 'warning');
+		 $form['actions']['cancel'] = array(
+  		  '#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+ 		 );
+		return $form;
+	}
+	if (! _ajexitv2_survey_($uuid)) {
+	
+		drupal_set_message(t('No existe una Encuesta de Participante disponible para <b>'.$beneficiaryDetails.'</b>'), 'warning');
+		$form['actions']['cancel'] = array(
+				'#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+		);
+		return $form;
+	}
+	
+	
+	$completeprograms = _ajexitv2_getBeneficiaryExitActivitiesCount($uuid);
+	$completeprograms_ = _ajexitv2_getBeneficiaryExitActivities($uuid);
+
+	$label = '<p>Estás creando un Formulario de Salida para <b>'.$beneficiaryDetails.'</b></p>';
+	$form['welcome'] = array(
+	  '#markup' => $label,
+	);
+
+	// Vertical tabs container
+	$form['group_tabs'] = array(
+		'#type'     => 'vertical_tabs',
+		'#attached' => array('library' => array(array('field_group', 'vertical_tabs'))), // Converts fieldsets into tabs
+	);
+	
+	// Tab 1
+	$form['programs'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Programas'),
+			'#group' => 'group_tabs',
+	);
+	// Tab 2
+	$form['exit'] = array(	    
+			'#type'  => 'fieldset',
+			'#title' => t('Estatus de Salida'),
+			'#group' => 'group_tabs',
+	);
+	
+	// Tab 3
+	$form['documentation'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+    	'#title' => t('Documentación'),
+		'#group' => 'group_tabs',
+	);
+
+	// Tab 4
+	$form['education'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+    	'#title' => t('Educación'),
+    	'#group' => 'group_tabs',
+	);
+
+	// Tab 5
+	$form['labor'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+    	'#title' => t('Laboral'),
+    	'#group' => 'group_tabs',
+	);
+	
+	// Tab 6
+	$form['security'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+	    '#title' => t('Seguridad Personal'),
+	    '#group' => 'group_tabs',
+	);
+	
+	// Tab 7
+	$form['justice'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+	    '#title' => t('Sistema de Justicia'),
+	    '#group' => 'group_tabs',
+	);
+	
+	// Tab 8
+	$form['drugs'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+	    '#type'  => 'fieldset',
+	    '#title' => t('Uso de Sustancias'),
+	    '#group' => 'group_tabs',
+	);
+
+	// Tab 9
+	$form['sexual'] = array(
+	    '#access' => _ajexitv2_aj_activities_($uuid),
+    	'#type'  => 'fieldset',
+    	'#title' => t('Educación Sexual'),
+    	'#group' => 'group_tabs',
+	);
+
+	$YesNoOptions = array(
+		1 => t('Sí'),
+		2 => t('No'),
+	);
+
+	$YesNoOptionsselect = array(
+			1 => t('Sí'),
+			2 => t('No'),
+			3 => t('Ya Tenia'),
+	);	
+	
+	$countriesOptionsSelect = array(
+	    1 => t('República Dominicana'),
+	    2 => t('Haití'),
+	    3 => t('Otro (favor especificar)'),
+	);	
+
+	$form['documentation']['9'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('9. ¿Dónde naciste?'),
+	    '#options' => drupal_map_assoc($countriesOptionsSelect),
+	    '#required' => false,
+	    '#group' => 'documentation',
+// 	    '#states' => array(
+// 	        'visible' => array(
+// 	            'input[name="98"]' => array (
+// 	                array('value' => t('Completó asistencia a servicios o programa en que participó')),
+// 	            ),
+// 	        ),),
+	);
+	
+	$form['documentation']['9Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('9.Otro (favor especificar).'),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="9"]' => array('value' => 'Otro (favor especificar)'),
+	        ),    	),
+	);
+	
+	$form['documentation']['10'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('10. ¿Tienes un acta de nacimiento?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	);
+	
+	$NineAOptions = array(
+	    1 => t('Está en trámite por referimiento del proyecto'),
+	    2 => t('Nací en Haití'),
+	    3 => t('Padre o madre nació en Haití'),
+	    4 => t('Me fueron denegados por la JCE'),
+	    5 => t('Mis padres no tienen acta de nacimiento (aunque sean dominicanos)'),
+	    6 => t('Mis padres no saben cómo o dónde obtener un acta de nacimiento'),
+	    7 => t('Muy caro'),
+	    8 => t('Muy lejos'),
+	    9 => t('Falta de tiempo'),
+	    10 => t('Perdí mi acta de nacimiento'),
+	    11 => t('Había problemas en el lugar de registro'),
+	    12 => t('Falta de poder juicial de algunos de mis padres'),
+	    13 => t('Falta de interés'),
+	    14 => t('No recibí información de cómo obtenerla'),
+	);
+	
+	$form['documentation']['10A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('10A. Si aún no tienes acta de nacimiento, ¿cuál es la razón principal por la que no tienes un acta? Marca sólo una opción.'),
+	    '#options' => drupal_map_assoc($NineAOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="10"]' => array('value' => 'No'),
+	        ),),
+	    '#group' => 'documentation',
+	);
+	
+	$form['documentation']['10AOtro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('10A.Otro (favor especificar).'),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="10A"]' => array('value' => 'Otro (favor especificar)'),
+	        ),
+	    ),
+	    '#group' => 'documentation',
+	);
+	
+	$form['documentation']['10_1'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('10.1 ¿Tienes cédula?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	);
+	
+	$lenguagesOptionsSelect = array(
+	    1 => t('Español'),
+	    2 => t('Creole'),
+	    3 => t('Otro (favor especificar)'),
+	);
+	
+	$form['documentation']['11'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('11. ¿Cuál es tu idioma principal?'),
+	    '#options' => drupal_map_assoc($lenguagesOptionsSelect),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	);
+	
+	$form['documentation']['11Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('11.Otro (favor especificar).'),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="11"]' => array('value' => 'Otro (favor especificar)'),
+	        ),    	),
+	);
+	
+	$estadoCivilOptionsSelect = array(
+	    1 => t('Soltero(a)'),
+	    2 => t('Unión Libre'),
+	    3 => t('Casado(a)'),
+	    4 => t('Divorciado(a)'),
+	    5 => t('Viudo(a)'),
+	);
+	
+	$form['documentation']['12'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('12. ¿Cuál es tu estado civil?'),
+	    '#options' => drupal_map_assoc($estadoCivilOptionsSelect),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	);
+	
+	$form['documentation']['13'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13. ¿Tienes hijos?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	);
+	
+	$amoutChildrenOptionOptions = array(
+	    1,
+	    2,
+	    3,
+	    4,
+	    5
+	);
+	
+	$form['documentation']['13A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13A. Si la respuesta es afirmativa, ¿cuántos tienes?'),
+	    '#options' => drupal_map_assoc($amoutChildrenOptionOptions),
+	    '#required' => false,
+	    '#group' => 'documentation',
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$sexOptions = array(
+	    '' => t('- Select -'),
+	    'F' => t('Femenino'),
+	    'M' => t('Masculino'),
+	);
+	
+	$_13Acontainer1 = array(
+	    '#type' => 'fieldset',
+	    '#title' => t('Hijo 1'),
+	    '#collapsible' => TRUE,
+	    '#collapsed' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'documentation',
+	);
+	
+	$_13Acontainer2 = array(
+	    '#type' => 'fieldset',
+	    '#title' => t('Hijo 2'),
+	    '#collapsible' => TRUE,
+	    '#collapsed' => true,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'documentation',
+	);
+	
+	$_13Acontainer3 = array(
+	    '#type' => 'fieldset',
+	    '#title' => t('Hijo 3'),
+	    '#collapsible' => TRUE,
+	    '#collapsed' => true,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'documentation',
+	);
+	
+	$_13Acontainer4 = array(
+	    '#type' => 'fieldset',
+	    '#title' => t('Hijo 4'),
+	    '#collapsible' => TRUE,
+	    '#collapsed' => true,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'documentation',
+	);
+	
+	$label = '<p><b>13A. Si la respuesta es afirmativa, por favor cuántos tienes y provee la siguiente información:</b></p>
+		<table><tr><th width="35%">Fecha de nacimiento</th><th width="20%">Sexo</th><th width="25%">¿Tú y el/la niño/a viven en la misma casa?</th><th width="20%">¿Este niño/a tiene un acta de nacimiento dominicana?</th></tr></table>';
+	$form['documentation']['13A_item'] = array(
+	    '#type' => 'item',
+	    '#markup' => $label,
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$_13Acontainer1['dob1'] = array(
+	    '#type'=>'date',
+	    '#title' => 'Fecha de nacimiento',
+	    '#required' => false,
+	//    '#default_value' =>	array('year' => , 'month' => 01, 'day' => 01),
+	    '#title_display'=>'invisible',
+	    '#prefix' => '<table><tr><td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer1['sex1'] = array(
+	    '#type'=>'select',
+	    '#title' => 'Sexo',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => $sexOptions,
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer1['samehouse1'] = array(
+	    '#type'=>'select',
+	    '#title' => '¿Tú y el/la niño/a viven en la misma casa?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer1['certificate1'] =array(
+	    '#type'=>'select',
+	    '#title' => '¿Este niño/a tiene un acta de nacimiento dominicana?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td></tr></table>',
+	);
+	$_13Acontainer2['dob2'] = array(
+	    '#type'=>'date',
+	    '#title' => 'Fecha de nacimiento',
+	    '#required' => false,
+	//    '#default_value' =>	array('year' => 1990, 'month' => null, 'day' => null),
+	    '#title_display'=>'invisible',
+	    '#prefix' => '<table><tr><td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer2['sex2'] = array(
+	    '#type'=>'select',
+	    '#title' => 'Sexo',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => $sexOptions,
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer2['samehouse2'] = array(
+	    '#type'=>'select',
+	    '#title' => '¿Tú y el/la niño/a viven en la misma casa?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer2['certificate2'] =array(
+	    '#type'=>'select',
+	    '#title' => '¿Este niño/a tiene un acta de nacimiento dominicana?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td></tr></table>',
+	);
+	$_13Acontainer3['dob3'] = array(
+	    '#type'=>'date',
+	    '#title' => 'Fecha de nacimiento',
+	    '#required' => false,
+	//    '#default_value' =>	array('year' => 1990, 'month' => null, 'day' => null),
+	    '#title_display'=>'invisible',
+	    '#prefix' => '<table><tr><td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer3['sex3'] = array(
+	    '#type'=>'select',
+	    '#title' => 'Sexo',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => $sexOptions,
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer3['samehouse3'] = array(
+	    '#type'=>'select',
+	    '#title' => '¿Tú y el/la niño/a viven en la misma casa?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer3['certificate3'] =array(
+	    '#type'=>'select',
+	    '#title' => '¿Este niño/a tiene un acta de nacimiento dominicana?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td></tr></table>',
+	);
+	$_13Acontainer4['dob4'] = array(
+	    '#type'=>'date',
+	    '#title' => 'Fecha de nacimiento',
+	    '#required' => false,
+	//    '#default_value' =>	array('year' => 1990, 'month' => null, 'day' => null),
+	    '#title_display'=>'invisible',
+	    '#prefix' => '<table><tr><td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer4['sex4'] = array(
+	    '#type'=>'select',
+	    '#title' => 'Sexo',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => $sexOptions,
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer4['samehouse4'] = array(
+	    '#type'=>'select',
+	    '#title' => '¿Tú y el/la niño/a viven en la misma casa?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td>',
+	);
+	$_13Acontainer4['certificate4'] =array(
+	    '#type'=>'select',
+	    '#title' => '¿Este niño/a tiene un acta de nacimiento dominicana?',
+	    '#title_display'=>'invisible',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#prefix' => '<td>',
+	    '#suffix' => '</td></tr></table>',
+	);
+	
+	$form['documentation']['13A1'] = $_13Acontainer1;
+	$form['documentation']['13A2'] = $_13Acontainer2;
+	$form['documentation']['13A3'] = $_13Acontainer3;
+	$form['documentation']['13A4'] = $_13Acontainer4;
+	
+	$form['education']['14'] = array(
+	    '#type' => 'select',
+	    '#title' => t('14. ¿Sabes leer y escribir?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#group' => 'education',
+	);
+
+	$educationLevelOptions = array(
+	    'Básica',
+	    'Bachillerato',
+	    'Universitario',
+	    'Post grado',
+	    'Ninguno',
+	);
+	
+	$form['education']['15'] = array(
+	    '#type' => 'select',
+	    '#title' => t('15. ¿Cuál es el nivel educativo más alto que has aprobado?'),
+	    '#options' => drupal_map_assoc($educationLevelOptions),
+	    '#required' => false,
+	    '#group' => 'education',
+	);
+	
+	$StudyOptions = array(
+	    1 => t('Escuela'),
+	    2 => t('Universidad'),
+	    3 => t('Ninguno'),
+	);
+
+	$form['education']['16'] = array(
+		'#type' => 'radios',
+		'#title' => t('16. ¿Actualmente estás asistiendo a...?'),
+		'#options' => drupal_map_assoc($StudyOptions),
+	    '#required' => false,
+	    '#group' => 'education',
+	);
+	
+	$form['education']['16A'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('16A. ¿Cuál es el nombre de tu escuela o universidad?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	            array('input[name="16"]' => array('value' => 'Universidad'))
+	        ),
+	    ),
+	);
+	
+	$sixteenBOptions = array(
+	    '1ro',
+	    '2do',
+	    '3ro',
+	    '4to',
+	    '5to',
+	    '6to',
+	    '7mo',
+	    '8vo',
+	);
+	
+	$form['education']['16B'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16B. ¿Qué grado estás cursando actualmente?:'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($sixteenBOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        ),
+	    ),
+	);
+	
+	$sixteenCOptions = array(
+	    'Básica',
+	    'Bachillerato',
+	);
+	
+	$form['education']['16C'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16C. ¿Cuál nivel?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($sixteenCOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        ),
+	    ),
+	);
+	
+	$sixteenDOptions = array(
+	    'Mañana',
+	    'Tarde',
+	    'Mañana y tarde',
+	    'Noche',
+	);
+	
+	$form['education']['16D'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16D. ¿A qué tanda asistes?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($sixteenDOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        ),
+	    ),
+	);
+	
+	$seventeenOptions = array(
+	    '0 veces',
+	    '1 a 2 veces',
+	    '3 a 10 veces',
+	    'Más de 10 veces',
+	);
+	
+	$form['education']['17'] = array(
+	    '#type' => 'select',
+	    '#title' => t('17. En el último año, ¿cuántas veces has faltado a la escuela por un día completo sin excusa?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($seventeenOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        ),
+	    ),
+	);
+	
+	$form['education']['18'] = array(
+	    '#type' => 'select',
+	    '#title' => t('18. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has sido suspendido/a de la escuela?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Ninguno')),
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        ),
+	    ),
+	);
+	
+	$nineteenOptions = array(
+	    'Alfabetización de jóvenes y adultos',
+	    'Educación Básica para Adultos (EBA)',
+	    'Educación Secundaria para Adultos (PREPARA)',
+	    'No estoy inscrito en ninguno de estos',
+	);
+	
+	$form['education']['19'] = array(
+	    '#type' => 'select',
+	    '#title' => t('19. ¿Actualmente estás asistiendo a algún programa de educación para jóvenes y adultos?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($nineteenOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            array('input[name="16"]' => array('value' => 'Ninguno')),
+	            array('input[name="16"]' => array('value' => 'Escuela')),
+	        )
+	    ),
+	);
+	
+	$form['education']['20'] = array(
+	    '#type' => 'select',
+	    '#title' => t('20. ¿En los últimos 12 meses has repetido algún curso en la escuela?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	);
+	
+	$form['education']['20A'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('20A. Si la respuesta es afirmativa, ¿cuáles cursos?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="20"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['education']['21'] = array(
+	    '#type' => 'select',
+	    '#title' => t('21. ¿Has completado algún curso técnico en Alerta Jóven?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	);
+	
+	$twentytwoOptions = array(
+	    'Estudiar y trabajar',
+	    'Solo estudiar',
+	    'Solo trabajar',
+	    'No estudio y no trabajo',
+	);
+	
+	$form['education']['22'] = array(
+	    '#type' => 'select',
+	    '#title' => t('22. Actualmente te dedicas a:'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($twentytwoOptions),
+	);
+	
+	$form['education']['23'] = array(
+	    '#type' => 'select',
+	    '#title' => t('23. ¿Durante la permanencia en el proyecto has sido suspendido/a de la escuela alguna vez?'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	);
+	
+	$twientyFourOptions = array(
+	    'Leer mejor',
+	    'En matemáticas',
+	    'En ciencias',
+	    'Estar en la escuela',
+	    'Cómo presentarme en un empleo',
+	    'Hablar mejor el español',
+	    'Hablar mejor el inglés',
+	    'Terminar la educación básica',
+	    'Terminar el bachillerato',
+	    'Llegar a la universidad',
+	    'Llevarme mejor con mis maestros',
+	    'Sentirme más seguro',
+	    'Mejorar mis calificaciones',
+	    'Otra meta'
+	);
+	
+	$form['education']['24'] = array(
+	    '#type' => 'checkboxes',
+	    '#title' => t('24. Haber participado en Alerta Joven te ayudó en algunas de estas áreas? Marca todo lo que corresponda'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($twientyFourOptions),
+	);
+	
+	$form['education']['24Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('24.Otra meta (favor especificar):'),
+	    '#required' => false,
+	    '#group' => 'education',
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="24[Otra meta]"]' => array('checked' => TRUE),
+	        ),
+	    )
+	);
+	
+	////////////// LABOR ////////////////////
+	
+	$activities = _ajbeneficiaryprofile_getBeneficiaryActivitiesType($uuid);
+	
+		$rows = array();
+		foreach ($activities as $activity) {
+				$rows[$activity->entity_id] = array(
+				'activity_name' => $activity->field_activity_name_value,
+				);
+			};
+		
+		$form['labor']['0_25'] = array(
+				'#title' => t('Cursos Técnicos realizados'),
+				'#markup' => theme('table', array(
+									'header' => array('Cursos Técnicos en las que ha participado'),
+									'rows' => $rows,
+									'empty' => 'Este beneficiario no ha participado ningún curso',
+									'attributes' =>  array('style' => 'width: 70%'))),
+				'#states' => array(
+						'invisible' => array(
+								':input[name="23"]' => array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')		
+								),
+		    ),
+		  ),	
+		);
+
+	$form['labor']['25'] = array(
+		'#type' => 'radios',
+		'#title' => t('25. ¿Después de entrar al proyecto, ¿has realizado alguna vez un trabajo o pasantía por paga?'),
+		'#options' => drupal_map_assoc($YesNoOptions),
+		'#required' => FALSE,
+		'#group' => 'labor',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['26'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('26. ¿Durante la última semana, ¿realizaste algún trabajo por paga o ganancia?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => FALSE,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['26A'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('26A. ¿Describe lo que haces en tu trabajo?'),
+	    '#maxlength' => 30,
+	    '#size' => 5,
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+
+	$form['labor']['27'] = array(
+		'#type' => 'date',
+		'#title' => t('27. ¿Cuándo empezaste en tu trabajo actual?'),
+		'#required' => FALSE,
+	    '#group' => 'labor',
+		'#description' => t('Favor seleccionar un día aproximado.'),
+	//	'#default_value' =>	array('year' => 2012, 'month' => 01, 'day' => 01),
+		'#states' => array(
+      		'visible' => array(
+      		    'input[name="25"]' => array('value' => 'Sí'),
+      		    'input[name="26"]' => array('value' => 'Sí'),
+      		),
+    	),
+	);
+	
+	$twentyeightOptions = array(
+	    'En mi casa',
+	    'Plantación/rancho/jardín',
+	    'En la casa del jefe/patrón',
+	    'Sitio de construcción',
+	    'En la calle',
+	    'Maquiladora/fábrica',
+	    'Colmado/Tienda/Mercado/Kiosco/Almacén',
+	    'Sitio de cantera/una mina',
+	    'Empresa',
+	    'Otros (especifica)',
+	);
+	
+	$form['labor']['28'] = array(
+	    '#type' => 'select',
+	    '#title' => t('28. ¿En qué lugar realizas este trabajo?'),
+	    '#required' => false,
+	    '#options' => drupal_map_assoc($twentyeightOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['28Nombre'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('28. Nombre:'),
+	    '#required' => false,
+	    '#maxlength' => 90,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	            'select[name="28"]' => array(
+	                array('value' => t('Maquiladora/fábrica')),
+	                array('value' => t('Colmado/Tienda/Mercado/Kiosco/Almacén')),
+	                array('value' => t('Empresa')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['28Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('28. Otros (especifica):'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	            'select[name="28"]' => array('value' => 'Otros (especifica)'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['29'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('29. ¿Cuántas horas trabajas en un día?'),
+	    '#description' => t('Sólo valores numéricos'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['30'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('30. ¿Cuántos días trabajas en una semana?'),
+	    '#required' => false,
+	    '#description' => t('Sólo valores numéricos'),
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['31'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('31. En promedio, ¿cuánto ganas en una semana?'),
+	    '#required' => false,
+	    '#description' => t('Sólo valores numéricos'),
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$thirtytwoOptions = array(
+	    'Empleado con salario',
+	    'Empleado sin salario',
+	    'Jefe',
+	    'Ayudante familiar',
+	    'Ayudante general',
+	    'Por cuenta propia',
+	    'Otros (especifica)',
+	);
+	
+	$form['labor']['32'] = array(
+	    '#type' => 'select',
+	    '#title' => t('32. ¿En este trabajo tú eres…?'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	    '#empty_option' => t('- Select -'),
+	    '#options' => drupal_map_assoc($thirtytwoOptions),
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['32Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('32. Otros (especifica):'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="25"]' => array('value' => 'Sí'),
+	            'input[name="26"]' => array('value' => 'Sí'),
+	            'select[name="32"]' => array('value' => 'Otros (especifica)'),
+	        ),
+	    ),
+	    '#group' => 'labor',
+	);
+	
+	$form['labor']['33'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('33. Actualmente, ¿realizas algún trabajo sin paga?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#required' => false,
+	    '#group' => 'labor',
+	);
+	
+	$form['labor']['33A'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('33A. Describe lo que haces en este trabajo:'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['34'] = array(
+	    '#type' => 'date',
+	    '#title' => t('34. ¿Cuándo comenzaste este trabajo?'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	//    '#default_value' =>	array('year' => 2012, 'month' => null, 'day' => null),
+	    '#description' => t('El día puede ser aproximado'),
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$thirtyfiveOptions = array(
+	    'En mi casa',
+	    'En la casa del jefe/patrón',
+	    'En la calle',
+	    'Maquiladora/fábrica',
+	    'Colmado/Tienda/Mercado/Kiosco/Almacén',
+	    'Plantación/rancho/jardín',
+	    'Sitio de construcción',
+	    'Sitio de cantera/una mina',
+	    'Empresa',
+	    'Otros (especifica)',
+	);
+	
+	$form['labor']['35'] = array(
+	    '#type' => 'select',
+	    '#title' => t('35. ¿En qué lugar realizas este trabajo?'),
+	    '#options' => drupal_map_assoc($thirtyfiveOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['35Nombre'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('35. Nombre:'),
+	    '#required' => false,
+	    '#maxlength' => 90,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	            'select[name="35"]' => array(
+	                array('value' => t('Maquiladora/fábrica')),
+	                array('value' => t('Colmado/Tienda/Mercado/Kiosco/Almacén')),
+	                array('value' => t('Empresa')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['35Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('35. Otros (especifica):'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	            'select[name="35"]' => array('value' => 'Otros (especifica)'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['36'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('36. ¿Cuántas horas trabajas en un día?'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['37'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('37. ¿Cuántos días trabajas en una semana?'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'labor',
+	);
+	
+	$thirtyeightOptions = array(
+	    'Empleado sin salario',
+	    'Jefe',
+	    'Ayudante familiar',
+	    'Ayudante general',
+	    'Por cuenta propia',
+	    'Otros (especifica)',
+	);
+	
+	$form['labor']['38'] = array(
+	    '#type' => 'select',
+	    '#title' => t('38. ¿En este trabajo tú eres…?'),
+	    '#options' => drupal_map_assoc($thirtyeightOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['38Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('38. Otros (especifica):'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#group' => 'labor',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="33"]' => array('value' => 'Sí'),
+	            'select[name="38"]' => array('value' => 'Otros (especifica)'),
+	        ),
+	    ),
+	);
+	
+	$form['labor']['39'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('39. ¿Has buscado un nuevo o mejor empleo en el último mes?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	);
+	
+	$form['labor']['40'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('40. ¿Has participado en algún programa de desarrollo de empleo. (Ejemplo: Juventud y Empleo, Programa de Parcelas)?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'labor',
+	);
+	
+	///////////// PROGRAMAS /////////////////////////
+			
+	$rows_ = array();
+	foreach ($completeprograms as $programm) {
+		$rows_[$programm ->activity_id] = array(
+				'program_name'  => $programm->field_programname_name_value,
+				'cantidad' => $programm->cantidad,
+		);
+	}
+	
+	
+	$form['programs'] ['program_info']['14A']= array(
+			'#markup' => theme('table', array(
+					'header' => array('Programas en los que ha Participado', 'Cantidad de Servicios'),
+					'rows' => $rows_,
+					'empty' => 'Este beneficiario no ha completado ningun programa',
+					'attributes' =>  array('style' => 'width: 70%')))
+	);
+			
+	$rows_ = array();
+	foreach ($completeprograms_ as $programm) {
+		$rows_[$programm->activity_id] = array(
+				'program_name' => $programm->field_activity_name_value
+		);
+	};
+	
+	$form['programs']['program_info']['14B'] = array(
+			'#markup' => theme('table', array(
+					'header' => array('Programas que ha Completado'),
+					'rows' => $rows_,
+					'empty' => 'Este beneficiario no ha completado ningun programa',
+					'attributes' =>  array('style' => 'width: 70%'))));
+		
+	///////////// VIOLANCE ////////////////
+	
+	$fortyoneOptions = array(
+	    'Muy a menudo',
+	    'Algo a menudo',
+	    'Rara vez',
+	    'Nunca',
+	    'No sé',
+	);
+	
+	$form['security']['41'] = array(
+	    '#type' => 'select',
+	    '#title' => t('41. ¿Con qué frecuencia te preocupa ser víctima de la delincuencia en tu barrio?'),
+	    '#options' => drupal_map_assoc($fortyoneOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['42'] = array(
+	    '#type' => 'select',
+	    '#title' => t('42. ¿Con qué frecuencia te preocupa ser víctima de la delincuencia en tu escuela o universidad?'),
+	    '#options' => drupal_map_assoc($fortyoneOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$fortythreeOptions = array(
+	    1 => t('1'),
+	    2 => t('2'),
+	    3 => t('3'),
+	    4 => t('4'),
+	    5 => t('5'),
+	    6 => t('6'),
+	    7 => t('7'),
+	    8 => t('8'),
+	    9 => t('9'),
+	    10 => t('10'),
+	);
+	
+	$form['security']['43'] = array(
+	    '#type' => 'select',
+	    '#title' => t('43. ¿En qué medida tu vida ha sido afectada por la delincuencia? '),
+	    '#description' => t('En una puntuación de 1 al 10, donde 1 es NINGUN IMPACTO Y 10 es IMPACTO TOTAL'),
+	    '#options' => drupal_map_assoc($fortythreeOptions),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['44'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('44. En tu opinión, ¿la delincuencia es un problema grave en tu barrio?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['45'] = array(
+	    '#type' => 'select',
+	    '#title' => t('45. ¿Te preocupa la presencia de pandillas en tu barrio?'),
+	    '#options' => drupal_map_assoc($fortyoneOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['46'] = array(
+	    '#type' => 'select',
+	    '#title' => t('46. La preocupación por la delincuencia o crimen en tu barrio, ¿te impide realizar las cosas que deseas hacer?'),
+	    '#options' => drupal_map_assoc($fortyoneOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['47'] = array(
+	    '#type' => 'item',
+	    '#markup' => '<p><b>47. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has tenido alguna de las siguientes experiencias con la policía?</b></p>',
+	    '#group' => 'security',
+	);
+	
+	$form['security']['47A'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('47A. Un policía me amenazó verbalmente'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['47B'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('47B. Un policía me cobró dinero sin justificación'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['47C'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('47C. Un policía me quitó algo que me pertenecía'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	$form['security']['47D'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('47D. Un policía me maltrató físicamente'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'security',
+	);
+	
+	////////////////// JUSTICE ///////////////////
+	
+	$form['justice']['48'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('48. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has sido transportado en una patrulla policial por una redada o por sospecha de la policía hacía ti?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	);
+	
+	$placesOptions= array(
+	    'Casa',
+	    'Escuela',
+	    'Barrio',
+	);
+	
+	$form['justice']['49'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('49. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has sido detenido por la policía por algún motivo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+// 	$form['justice']['49A'] = array(
+// 	    '#type' => 'select',
+// 	    '#title' => t('49A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+// 	    '#options' => drupal_map_assoc($placesOptions),
+// 	    '#group' => 'justice',
+// 	    '#empty_option' => t('- Select -'),
+// 	    '#required' => false,
+// 	    '#states' => array(
+// 	        'invisible' => array(
+// 	            'input[name="49"]' => array(
+// 	                array('value' => 'Sí'),
+// 	                array('value' => 'No'),
+// 	                array('value' => '- Select -')
+// 	            ),
+// 	        ),
+// 	    ),
+// 	);
+	
+	$form['justice']['50'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('50. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has sido detenido por la policía acusado de cometer algún motivo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['50A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('50A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#group' => 'justice',
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="50"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['51'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('51. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguno de tus amigos ha sido detenido alguna vez por la policía?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['51A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('51A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#group' => 'justice',
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="51"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['52'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('52. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has tomado algo de una tienda sin pagar por ella?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['53'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('53. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has participado en alguna pelea o riña?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['54'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('54.Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has llevado un cuchillo, puñal o machete?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['54A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('54A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#group' => 'justice',
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="54"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['55'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('55. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has llevado un arma de fuego?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['55A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('55A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="55"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'justice',
+	);
+	
+	$form['justice']['56'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('56. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has visto a alguien que estaba siendo apuñalado, cortado o baleado?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['56A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('56A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó:'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="56"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['57'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('57. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿alguien te ha amenazado con un cuchillo o una pistola?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['57A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('57A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="57"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['58'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('58. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿alguien te ha cortado o apuñalado tan gravemente que tuviste que ir a un médico?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['58A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('58A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="58"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['59'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('59. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿alguien te ha disparado con un arma de fuego?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['59A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('59A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#group' => 'justice',
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="59"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['justice']['60'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('60. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has amenazado a alguien con cortarle, apuñalarle o dispararle?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['60A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('60A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="60"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'justice',
+	);
+	$form['justice']['61'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('61. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has amenazado a alguien con un cuchillo o arma?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['61A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('61A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="61"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'justice',
+	);
+	$form['justice']['62'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('62. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has cortado o apuñalado a alguien?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['62A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('62A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'justice',
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="62"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['justice']['63'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('63. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿le has disparado a alguien?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['63A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('63A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'justice',
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="63"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['64'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('64. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has tenido algún amigo o miembro de tu familia que le han disparado, cortado o apuñalado?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['justice']['65'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('65. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has dañado o destruido a propósito artículos que no te pertenecen?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['justice']['66'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('66. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has sido atacado o robado?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['justice']['67'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('67. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has atacado o robado a alguien?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['justice']['68'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('68. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has sido secuestrado?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['69'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('69. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has secuestrado a alguien?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['70'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('70. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has robado algo de una tienda o algo que no te pertenecía que tenía un valor menor de RD$200?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['71'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('71. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez ha robado algo de una tienda o algo que no te pertenecía que tenía un valor mayor de RD$200 (incluyendo carros)?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['72'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('72. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Alguna vez has vendido o ayudado a vender drogas?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['73'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('73. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Has estado involucrado en una pandilla?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	
+	$form['justice']['73A'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('73A. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Actualmente, estás involucrado en una pandilla?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'justice',
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="73"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['justice']['74'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('74. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿Compartes tiempo o te relacionas con miembros de una pandilla?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'justice',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['justice']['74A'] = array(
+	    '#type' => 'select',
+	    '#title' => t('74A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó'),
+	    '#options' => drupal_map_assoc($placesOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'justice',
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="74"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	//////////// DRUGS /////////////////////
+
+	$form['drugs']['75'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('75. Desde que iniciaste en el proyecto Alerta Joven, ¿has hablado o compartido con alguien borracho o drogado?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['drugs']['76'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('76. Desde que iniciaste en el proyecto Alerta Joven, ¿has tomado una bebida alcohólica, una copa/vaso entero, no sólo un sorbo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['drugs']['76A'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('76A. En los últimos 3 meses, ¿has consumido alcohol?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="76"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['drugs']['76B'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('76B. En los últimos 3 meses, ¿has tomado cinco vasos/copas o más de bebidas alcohólicas en el mismo día?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="76"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['drugs']['77'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('77. Desde que iniciaste en el proyecto Alerta Joven, ¿Has probado alguna vez alguna de estas drogas: marihuana, cocaína,heroína, pastillas, crack, cemento o cualquier otra cosa para drogarse?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['drugs']['78'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('78. En los últimos 3 meses, ¿has usado una aguja para inyectarte droga?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'drugs',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="77"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$seventynineOptions = array(
+	    'Marihuana',
+	    'Cocaína en polvo',
+	    'Metanfetamina o cristal',
+	    'Inhalantes como pegamento, cemento, pintura, spray',
+	    'Crack',
+	    'Heroína',
+	    'Éxtasis/MDMA',
+	    'Otros (especifica)',
+	);
+	$form['drugs']['79'] = array(
+	    '#type' => 'checkboxes',
+	    '#title' => t('79. Marca con una X todos los nombres de drogas que hayas probado en algún momento:'),
+	    '#options' => drupal_map_assoc($seventynineOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#group' => 'drugs',
+	    '#required' => false,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="77"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['drugs']['79Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('79. Otros (especifica):'),
+	    '#required' => false,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="77"]' => array('value' => 'Sí'),
+	            'input[name="79[Otros (especifica)]"]' => array('checked' => TRUE),
+	        ),
+	    ),
+	    '#group' => 'drugs',
+	);
+	
+   ///////////////// SEXUAL  //////////////////////////
+
+	$form['sexual']['82'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('82. En los últimos seis meses, ¿has tenido relaciones sexuales?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['83'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('83. ¿Qué edad tenías en ese momento?'),
+	    '#required' => false,
+	    '#maxlength' => 3,
+	    '#group' => 'sexual',
+	    '#size' => 10,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	
+	$eightyfourOptions = array(
+	    t('Sólo mujeres'),
+	    t('Sólo hombres'),
+	    t('Hombres y mujeres'),
+	    t('Hombres y mujeres juntos'),
+	);
+	$form['sexual']['84'] = array(
+	    '#type' => 'select',
+	    '#title' => t('84. ¿Con quiénes has tenido relaciones sexuales?'),
+	    '#required' => false,
+	    '#options' => drupal_map_assoc($eightyfourOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	    '#group' => 'sexual',
+	);
+	$eightyfiveOptions = array(
+	    t('1'),
+	    t('2 a 4'),
+	    t('5 a 7'),
+	    t('8 a 10'),
+	    t('11 a 13'),
+	    t('14 o más personas'),
+	);
+	$form['sexual']['85'] = array(
+	    '#type' => 'select',
+	    '#title' => t('85 ¿Con cuántas personas diferentes has tenido relaciones sexuales en los últimos 6 meses?'),
+	    '#required' => false,
+	    '#options' => drupal_map_assoc($eightyfiveOptions),
+	    '#group' => 'sexual',
+	    '#empty_option' => t('- Select -'),
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['86'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('86. La última vez que tuviste relaciones sexuales, ¿tú o tu compañero/a utilizó un condón?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$eightysevenOptions = array(
+	    1 => t('No utilicé ningún método para prevenir el embarazo'),
+	    2 => t('Condón'),
+	    3 => t('Condón femenino'),
+	    4 => t('Píldora anticonceptiva'),
+	    5 => t('Ritmo (mantener relaciones en días no fértiles o cuando no hay ovulación)'),
+	    6 => t('Retiro (detener la penetración antes de eyacular)'),
+	    7 => t('Mela (mujeres lactando)'),
+	    8 => t('DIU (como Mirena o Paragard)'),
+	    9 => t('Inyección (como Depo-Provera), un parche (Ortho Evra), o un anillo (como NuvaRing)'),
+	    10 => t('Implante o norplant (como Implanon o Nexplanon)'),
+	    11 => t('Esterilización femenina'),
+	    12 => t('Esterilización masculina'),
+	    13 => t('No sé/Inseguro'),
+	    14 => t('Otro (favor especificar)'),
+	);
+	$form['sexual']['87'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('87. La última vez que tuviste relaciones sexuales, ¿cuál método usaste o tu compañero/a para prevenir el embarazo?'),
+	    '#options' => drupal_map_assoc($eightysevenOptions),
+	    '#empty_option' => t('- Select '),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['87Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('87.Otro (favor especificar).'),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	            'input[name="87"]' => array('value' => 'Otro (favor especificar)'),
+	        ),
+	    ),
+	);
+	$form['sexual']['88'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('88. Desde que iniciaste en el proyecto Alerta Joven, ¿alguien te ha obligado a tener relaciones sexuales?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['89'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('89. Desde que iniciaste en el proyecto Alerta Joven, ¿has tenido relaciones sexuales por dinero, bienes (celulares, vivienda, etc.) o servicios (protección, comida, etc.)?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$eightynineBOptions = array(
+	    1 => t('La semana pasada'),
+	    2 => t('En los últimos 6 meses'),
+	    3 => t('En los últimos 9 meses')
+	);
+	$form['sexual']['89B'] = array(
+	    '#type' => 'select',
+	    '#title' => t('89B. Si la respuesta es afirmativa, ¿Cuándo fue la última vez?'),
+	    '#options' => drupal_map_assoc($eightynineBOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="82"]' => array('value' => 'Sí'),
+	            'input[name="89"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['90'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('90. Si quisieras comprar un condón, ¿crees que podrías encontrarlo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['91'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('91. Si quisieras tener sexo, ¿crees que podrías convencer a tu pareja de que use condón en caso de que él/ella se niegue a usarlo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['92'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('92. ¿Te sientes capaz de tener una conversación abierta y honesta sobre sexo con sus padres?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['93'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('93. ¿Alguna vez has tenido una conversación abierta y honesta sobre sexo con tus padres?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['94'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('94. ¿Alguna vez alguien te ha enseñado (o hablado) acerca de las infecciones de transmisión sexual?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$ninetyfourAOptions = array(
+	    'Orientador(a) o Psicólogo(a) de la escuela',
+	    'Profesor(a) de la escuela',
+	    'Amigos',
+	    'Padre o Madre',
+	    'Internet',
+	    'Promotor(a) de Salud',
+	    'Otro (especifica)',
+	);
+	$form['sexual']['94A'] = array(
+	    '#type' => 'checkboxes',
+	    '#title' => t('94A. Si la respuesta es afirmativa, ¿dónde has recibido información? Marca todas las que apliquen'),
+	    '#options' => drupal_map_assoc($ninetyfourAOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="94"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['94AOtro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('94A. Otro (Especifique):'),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="94"]' => array('value' => 'Sí'),
+	            'input[name="94A[Otro (especifica)]"]' => array('checked' => TRUE),
+	        ),
+	    ),
+	);
+	$form['sexual']['95'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('95. ¿Alguna vez alguien te ha enseñado acerca de la prevención de embarazo?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['95A'] = array(
+	    '#type' => 'checkboxes',
+	    '#title' => t('95A. Si la respuesta es afirmativa, ¿dónde has recibido información? Marca todas las que apliquen'),
+	    '#options' => drupal_map_assoc($ninetyfourAOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="95"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['95AOtro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('95A. Otro (Especifique):'),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="95"]' => array('value' => 'Sí'),
+	            'input[name="95A[Otro (especifica)]"]' => array('checked' => TRUE),
+	        ),
+	    ),
+	);
+	
+	$form['sexual']['96'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('96. ¿Alguna vez alguien te ha enseñado acerca de la infección por VIH?'),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'invisible' => array(
+	            ':input[name="98"]' => array(
+	                array('value' => t('No pudo comunicarse o encontrar al participante / pérdida de contacto')),
+	                array('value' => t('Desertó')),
+	                array('value' => t('Falleció')),
+	            ),
+	        ),
+	    ),
+	);
+	$form['sexual']['96A'] = array(
+	    '#type' => 'checkboxes',
+	    '#title' => t('96A. Si la respuesta es afirmativa, ¿dónde has recibido información? Marca todas las que apliquen'),
+	    '#options' => drupal_map_assoc($ninetyfourAOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="96"]' => array('value' => 'Sí'),
+	        ),
+	    ),
+	);
+	$form['sexual']['96AOtro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('96A. Otro (Especifique):'),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => false,
+	    '#group' => 'sexual',
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="96"]' => array('value' => 'Sí'),
+	            'input[name="96A[Otro (especifica)]"]' => array('checked' => TRUE),
+	        ),
+	    ),
+	);
+	
+	////////// SALIDA ///////////////////////////////
+	
+	$form['exit']['97'] = array(
+	    '#type' => 'date',
+	    '#title' => t('Fecha de Revisión:'),
+	    '#default_value' =>	array('year' => 2017, 'month' => null, 'day' => null),
+	    '#required' => TRUE,
+	);
+	
+	$TwentythirdOptions = array(
+	    10 => t('Completó asistencia a servicios o programas en que participó'),
+	    1 =>t('No pudo comunicarse o encontrar al participante/pérdida de contacto'),
+	    2 => t('Voluntariamente dejó de asistir a los servicios o programas / No completó el porcentaje del programa'),
+	    7 => t('Desertó'),
+	    8 => t('Falleció'),
+	    9 => t('Otro (favor especificar)'),
+	);
+		
+	$form['exit']['98'] = array(
+	    '#type' => 'radios',
+	    '#title' => t('Estatus de Salida. Selecciona la situación en que se encuentra el participante:'),
+	    '#options' => drupal_map_assoc($TwentythirdOptions),
+	    '#required' => TRUE,
+	);
+	
+	$form['exit']['98Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('Favor especificar:'),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="98"]' => array('value' => 'Otro (favor especificar)'),
+	        ),
+	    ),
+	);
+	
+	$form['exit']['99'] = array(
+	    '#type' => 'textarea',
+	    '#title' => t('Comentarios:'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            'input[name="98"]' => array (
+	                array('value' => t('Otro (favor especificar)')),
+	            ),
+	        ),),
+	);
+	
+	$form['actions'] = array('#type' => 'actions');
+
+	$form['actions']['cancel'] = array(
+		'#type' => 'submit',
+		'#prefix' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<div style="display: inline-block; width: 200px;" class = "remove"><br>',
+		'#sufix' => '</div> <br>',
+		'#value' => t('Cancelar'),
+		'#limit_validation_errors' => array(),
+		'#submit' => array('ajexitv2_form_submit'),
+		'#weight' => 100,
+	);
+
+	$form['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#prefix' => '',
+		'#sufix' => '',
+// 	    '#limit_validation_errors' => array(),
+	    '#submit' => array('ajexitv2_form_submit'),
+	    '#value' => t('Guardar'),
+		'#weight' => 100,
+	);
+
+	return $form;
+	
+}
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+/* 
+$urlParams = drupal_get_query_parameters();
+$uuid = $urlParams['uuid'];
+*/
+
+
+function ajexitv2_form_submit($form, &$form_state) {
+
+	if ( $form_state['clicked_button']['#value'] === 'Cancelar' ) {
+		drupal_set_message('Formulario descartado', 'warning');
+		$form_state['redirect'] = 'mis-beneficiarios';
+		return;
+	}
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+	$provider_id = $urlParams['provider_id'];
+
+	$beneficiary = _ajexitv2_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
+
+	// Fehca de revision
+ 	$_97 = $form_state['values']['97'];
+    $_97_date = $_97['year'].'-'. (strlen($_97['month']) === 1? '0'.$_97['month']:$_97['month']).'-'.(strlen($_97['day']) === 1? '0'.$_97['day']:$_97['day']);
+    
+    if (_ajexitv2_aj_activities_($uuid)) {
+    
+	_ajexitv2_insert_data(
+	    $form_state['values']['9'],
+	    $form_state['values']['9Otro'],
+	    $form_state['values']['10'],
+	    $form_state['values']['10A'],
+	    $form_state['values']['10AOtro'],
+	    $form_state['values']['10_1'],
+	    $form_state['values']['11'],
+	    $form_state['values']['11Otro'],
+	    $form_state['values']['12'],
+	    $form_state['values']['13'],
+	    $form_state['values']['13A'],
+	    $form_state['values']['dob1'],
+	    $form_state['values']['sex1'],
+	    $form_state['values']['samehouse1'],
+	    $form_state['values']['certificate1'],
+	    $form_state['values']['dob2'],
+	    $form_state['values']['sex2'],
+	    $form_state['values']['samehouse2'],
+	    $form_state['values']['certificate2'],
+	    $form_state['values']['dob3'],
+	    $form_state['values']['sex3'],
+	    $form_state['values']['samehouse3'],
+	    $form_state['values']['certificate3'],
+	    $form_state['values']['dob4'],
+	    $form_state['values']['sex4'],
+	    $form_state['values']['samehouse4'],
+	    $form_state['values']['certificate4'],
+	    $form_state['values']['14'],
+	    $form_state['values']['15'],
+	    $form_state['values']['16'],
+	    $form_state['values']['16A'],
+	    $form_state['values']['16B'],
+	    $form_state['values']['16C'],
+	    $form_state['values']['16D'],
+	    $form_state['values']['17'],
+	    $form_state['values']['18'],
+	    $form_state['values']['19'],
+	    $form_state['values']['20'],
+	    $form_state['values']['20A'],
+	    $form_state['values']['21'],
+	    $form_state['values']['22'],
+	    $form_state['values']['23'],
+	    $form_state['values']['24'],
+	    $form_state['values']['24Otro'],
+	    $form_state['values']['25'],
+	    $form_state['values']['26'],
+	    $form_state['values']['26A'],
+	    $form_state['values']['27'],
+	    $form_state['values']['28'],
+	    $form_state['values']['28Nombre'],
+	    $form_state['values']['28Otro'],
+	    $form_state['values']['29'],
+	    $form_state['values']['30'],
+	    $form_state['values']['31'],
+	    $form_state['values']['32'],
+	    $form_state['values']['32Otro'],
+	    $form_state['values']['33'],
+	    $form_state['values']['33A'],
+	    $form_state['values']['34'],
+	    $form_state['values']['35'],
+	    $form_state['values']['35Nombre'],
+	    $form_state['values']['35Otro'],
+	    $form_state['values']['36'],
+	    $form_state['values']['37'],
+	    $form_state['values']['38'],
+	    $form_state['values']['38Otro'],
+	    $form_state['values']['39'],
+	    $form_state['values']['40'],
+	    $form_state['values']['41'],
+	    $form_state['values']['42'],
+	    $form_state['values']['43'],
+	    $form_state['values']['44'],
+	    $form_state['values']['45'],
+	    $form_state['values']['46'],
+	    $form_state['values']['47A'],
+	    $form_state['values']['47B'],
+	    $form_state['values']['47C'],
+	    $form_state['values']['47D'],
+	    $form_state['values']['48'],
+	    $form_state['values']['49'],
+	    '',
+	    $form_state['values']['50'],
+	    $form_state['values']['50A'],
+	    $form_state['values']['51'],
+	    $form_state['values']['51A'],
+	    $form_state['values']['52'],
+	    $form_state['values']['53'],
+	    $form_state['values']['54'],
+	    $form_state['values']['54A'],
+	    $form_state['values']['55'],
+	    $form_state['values']['55A'],
+	    $form_state['values']['56'],
+	    $form_state['values']['56A'],
+	    $form_state['values']['57'],
+	    $form_state['values']['57A'],
+	    $form_state['values']['58'],
+	    $form_state['values']['58A'],
+	    $form_state['values']['59'],
+	    $form_state['values']['59A'],
+	    $form_state['values']['60'],
+	    $form_state['values']['60A'],
+	    $form_state['values']['61'],
+	    $form_state['values']['61A'],
+	    $form_state['values']['62'],
+	    $form_state['values']['62A'],
+	    $form_state['values']['63'],
+	    $form_state['values']['63A'],
+	    $form_state['values']['64'],
+	    $form_state['values']['65'],
+	    $form_state['values']['66'],
+	    $form_state['values']['67'],
+	    $form_state['values']['68'],
+	    $form_state['values']['69'],
+	    $form_state['values']['70'],
+	    $form_state['values']['71'],
+	    $form_state['values']['72'],
+	    $form_state['values']['73'],
+	    $form_state['values']['73A'],
+	    $form_state['values']['74'],
+	    $form_state['values']['74A'],
+	    $form_state['values']['75'],
+	    $form_state['values']['76'],
+	    $form_state['values']['76A'],
+	    $form_state['values']['76B'],
+	    $form_state['values']['77'],
+	    $form_state['values']['78'],
+	    $form_state['values']['79'],
+	    $form_state['values']['79Otro'],
+	    $form_state['values']['82'],
+	    $form_state['values']['83'],
+	    $form_state['values']['84'],
+	    $form_state['values']['85'],
+	    $form_state['values']['86'],
+	    $form_state['values']['87'],
+	    $form_state['values']['87Otro'],
+	    $form_state['values']['88'],
+	    $form_state['values']['89'],
+	    $form_state['values']['89B'],
+	    $form_state['values']['90'],
+	    $form_state['values']['91'],
+	    $form_state['values']['92'],
+	    $form_state['values']['93'],
+	    $form_state['values']['94'],
+	    $form_state['values']['94A'],
+	    $form_state['values']['94AOtro'],
+	    $form_state['values']['95'],
+	    $form_state['values']['95A'],
+	    $form_state['values']['95AOtro'],
+	    $form_state['values']['96'],
+	    $form_state['values']['96A'],
+	    $form_state['values']['96AOtro'],
+	    $_97_date,
+	    $form_state['values']['98'],
+	    $form_state['values']['98Otro'],
+	    $form_state['values']['99'],
+			$uuid,
+			$provider_id);
+
+	drupal_set_message('El Formulario de Salida ha sido guardado satisfactoriamente para <b>'.$beneficiaryDetails.'</b>!');
+
+	$form_state['redirect'] = 'mis-beneficiarios';
+    }
+    else if (!_ajexitv2_aj_activities_($uuid)){
+    	
+    	_ajexitv2_insert_data_short(
+    			$_97_date,
+    			$form_state['values']['98'],
+    			$form_state['values']['98Otro'],
+    			$form_state['values']['99'],
+    			$uuid,
+    			$provider_id);
+    	
+    	drupal_set_message('El Formulario de Salida ha sido guardado satisfactoriamente para <b>'.$beneficiaryDetails.'</b>!');
+    	
+    	$form_state['redirect'] = 'mis-beneficiarios';
+    	 
+    }
+}
+
+/**
+ *	Implements validation from the Form API.
+ *
+ * @param $form
+ *   A structured array containing the elements and properties of the form.
+ * @param $form_state
+ *   An array that stores information about the form's current state
+ *   during processing.
+ */
+ function ajexitv2_form_validate($form, &$form_state) {
+
+	$now = date('Y-m-d', time());
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+// 	watchdog('claudia', isset($form['documentation']['9']));
+// 	var_dump($form['actions']['submit']);
+// 	drupal_set_message(t('22. Fecha de Revisión: Esta fecha no es válida'));
+// 	form_error($form, t('heyyyyy'));
+		
+	$_98 = $form_state['values']['98'];
+	$_98Otro = $form_state['values']['98Otro'];
+	$_99 = $form_state['values']['99'];
+	
+	if ($_98 === 'Otro (favor especificar)') {
+	  if (empty($_98Otro)) {
+	   form_error($form['exit']['98Otro'], t('Status de Salida.Otro (favor especificar): Estos campos son requeridos'));
+	  }
+	  
+	  if (empty($_99)) {
+	    form_error($form['exit']['99'], t('Comentarios: Estos campos son requeridos'));
+	  }
+	}
+	
+	if (_ajexitv2_aj_activities_($uuid) && $_98 === 'Completó asistencia a servicios o programas en que participó') {
+		 
+	     if (!isset($form['documentation']['9'])) {
+			return;
+		}
+		
+		$_9 = $form_state['values']['9'];
+		$_9Otro = $form_state['values']['9Otro'];
+		$_10 = $form_state['values']['10'];
+		$_10A = $form_state['values']['10A'];
+		$_10AOtro = $form_state['values']['10AOtro'];
+		$_10_1 = $form_state['values']['10_1'];
+		$_11 = $form_state['values']['11'];
+		$_11Otro = $form_state['values']['11Otro'];
+		$_12 = $form_state['values']['12'];
+		$_13 = $form_state['values']['13'];
+		$_13A = $form_state['values']['13A'];
+		$_13dob1 = $form_state['values']['dob1'];
+		$_13sex1 = $form_state['values']['sex1'];
+		$_13samehouse1 = $form_state['values']['samehouse1'];
+		$_13certificate1 = $form_state['values']['certificate1'];
+		$_14 = $form_state['values']['14'];
+		$_15 = $form_state['values']['15'];
+		$_16 = $form_state['values']['16'];
+		$_16A = $form_state['values']['16A'];
+		$_16B = $form_state['values']['16B'];
+		$_16C = $form_state['values']['16C'];
+		$_16D = $form_state['values']['16D'];		
+		$_17 = $form_state['values']['17'];
+		$_18 = $form_state['values']['18'];
+		$_19 = $form_state['values']['19'];
+		$_20 = $form_state['values']['20'];
+		$_20A = $form_state['values']['20A'];
+		$_21 = $form_state['values']['21'];
+		$_22 = $form_state['values']['22'];
+		$_23 = $form_state['values']['23'];
+		$_24 = $form_state['values']['24'];
+		$_24Otro = $form_state['values']['24Otro'];
+		$_25 = $form_state['values']['25'];
+		$_26 = $form_state['values']['26'];
+		$_26A = $form_state['values']['26A'];
+		$_27 = $form_state['values']['27'];
+		$_28 = $form_state['values']['28'];
+		$_28Otro = $form_state['values']['28Otro'];
+		$_29 = $form_state['values']['29'];
+		$_30 = $form_state['values']['30'];
+		$_31 = $form_state['values']['31'];
+		$_32 = $form_state['values']['32'];
+		$_32Otro = $form_state['values']['32Otro'];
+		$_33 = $form_state['values']['33'];
+		$_33A = $form_state['values']['33A'];
+		$_34 = $form_state['values']['34'];
+		$_35 = $form_state['values']['35'];
+		$_35Otro = $form_state['values']['35Otro'];
+		$_36 = $form_state['values']['36'];
+		$_37 = $form_state['values']['37'];
+		$_38 = $form_state['values']['38'];
+		$_38Otro = $form_state['values']['38Otro'];
+		$_39 = $form_state['values']['39'];
+		$_40 = $form_state['values']['40'];
+		$_41 = $form_state['values']['41'];
+		$_42 = $form_state['values']['42'];
+		$_43 = $form_state['values']['43'];
+		$_44 = $form_state['values']['44'];
+		$_45 = $form_state['values']['45'];
+		$_46 = $form_state['values']['46'];
+		$_47A = $form_state['values']['47A'];
+		$_47B = $form_state['values']['47B'];
+		$_47C = $form_state['values']['47C'];
+		$_47D = $form_state['values']['47D'];
+		$_48 = $form_state['values']['48'];
+		$_49 = $form_state['values']['49'];
+		$_49A = '';
+		$_50 = $form_state['values']['50'];
+		$_50A = $form_state['values']['50A'];
+		$_51 = $form_state['values']['51'];
+		$_51A = $form_state['values']['51A'];
+		$_52 = $form_state['values']['52'];
+		$_53 = $form_state['values']['53'];
+		$_54 = $form_state['values']['54'];
+		$_54A = $form_state['values']['54A'];
+		$_55 = $form_state['values']['55'];
+		$_55A = $form_state['values']['55A'];
+		$_56 = $form_state['values']['56'];
+		$_56A = $form_state['values']['56A'];
+		$_57 = $form_state['values']['57'];
+		$_57A = $form_state['values']['57A'];
+		$_58 = $form_state['values']['58'];
+		$_58A = $form_state['values']['58A'];
+		$_59 = $form_state['values']['59'];
+		$_59A = $form_state['values']['59A'];
+		$_60 = $form_state['values']['60'];
+		$_60A = $form_state['values']['60A'];
+		$_61 = $form_state['values']['61'];
+		$_61A = $form_state['values']['61A'];
+		$_62 = $form_state['values']['62'];
+		$_62A = $form_state['values']['62A'];
+		$_63 = $form_state['values']['63'];
+		$_63A = $form_state['values']['63A'];
+		$_64 = $form_state['values']['64'];
+		$_65 = $form_state['values']['65'];
+		$_66 = $form_state['values']['66'];
+		$_67 = $form_state['values']['67'];
+		$_68 = $form_state['values']['68'];
+		$_69 = $form_state['values']['69'];
+		$_70 = $form_state['values']['70'];
+		$_71 = $form_state['values']['71'];
+		$_72 = $form_state['values']['72'];
+		$_73 = $form_state['values']['73'];
+		$_73A = $form_state['values']['73A'];
+		$_74 = $form_state['values']['74'];
+		$_74A = $form_state['values']['74A'];
+		$_75 = $form_state['values']['75'];
+		$_76 = $form_state['values']['76'];
+		$_76A = $form_state['values']['76A'];
+		$_76B = $form_state['values']['76B'];
+		$_77 = $form_state['values']['77'];
+		$_78 = $form_state['values']['78'];
+		$_79 = $form_state['values']['79'];
+		$_79Otro = $form_state['values']['79Otro'];
+		$_82 = $form_state['values']['82'];
+		$_83 = $form_state['values']['83'];
+		$_84 = $form_state['values']['84'];
+		$_85 = $form_state['values']['85'];
+		$_86 = $form_state['values']['86'];
+		$_87 = $form_state['values']['87'];
+		$_87Otro = $form_state['values']['87Otro'];
+		$_88 = $form_state['values']['88'];
+		$_89 = $form_state['values']['89'];
+		$_89B = $form_state['values']['89B'];
+		$_90 = $form_state['values']['90'];
+		$_91 = $form_state['values']['91'];
+		$_92 = $form_state['values']['92'];
+		$_93 = $form_state['values']['93'];
+		$_94 = $form_state['values']['94'];
+		$_94A = $form_state['values']['94A'];
+		$_94AOtro = $form_state['values']['94AOtro'];
+		$_95 = $form_state['values']['95'];
+		$_95A = $form_state['values']['95A'];
+		$_95AOtro = $form_state['values']['95AOtro'];
+		$_96 = $form_state['values']['96'];
+		$_96A = $form_state['values']['96A'];
+		$_96AOtro = $form_state['values']['96AOtro'];
+		$_97 = $form_state['values']['97'];
+		
+		$now = date('Y-m-d', time());
+		$currentYear = date('Y', time());
+		
+		if (!isset($_9)){
+		  form_error($form['documentation']['9'], t('9: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_10)){
+		  form_error($form['documentation']['10'], t('10: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_10_1)){
+		  form_error($form['documentation']['10_1'], t('10.1: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_11)){
+		  form_error($form['documentation']['11'], t('11: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_12)){
+		  form_error($form['documentation']['12'], t('12: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_13)){
+		  form_error($form['documentation']['13'], t('13: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_14)){
+		  form_error($form['education']['14'], t('14: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_15)){
+		  form_error($form['education']['15'], t('15: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_16)){
+		  form_error($form['education']['16'], t('16: Estos campos son requeridos'));
+		}
+				
+		if (empty($_20)){
+		  form_error($form['education']['20'], t('20: Estos campos son requeridos'));
+		}
+		
+		if (empty($_21)){
+		  form_error($form['education']['21'], t('21: Estos campos son requeridos'));
+		}
+		
+		if (empty($_22)){
+		  form_error($form['education']['22'], t('22: Estos campos son requeridos'));
+		}
+		
+		if (empty($_23)){
+		  form_error($form['education']['23'], t('23: Estos campos son requeridos'));
+		}
+		
+		if (empty($_24)){
+		  form_error($form['education']['24'], t('24: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_25)){
+		  form_error($form['labor']['25'], t('25: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_33)){
+		  form_error($form['labor']['33'], t('33: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_39)){
+		  form_error($form['labor']['39'], t('39: Estos campos son requeridos'));
+		}
+		
+		if (!isset($_40)){
+		  form_error($form['labor']['40'], t('40: Estos campos son requeridos'));
+		}
+		
+		if (empty($_41)){
+		  form_error($form['security']['41'], t('41: Estos campos son requeridos'));
+		}
+		
+		if (empty($_42)){
+		  form_error($form['security']['42'], t('42: Estos campos son requeridos'));
+		}
+		
+		if (empty($_43)){
+		  form_error($form['security']['43'], t('43: Estos campos son requeridos'));
+		}
+		
+		if (empty($_44)){
+		  form_error($form['security']['44'], t('44: Estos campos son requeridos'));
+		}
+		
+		if (empty($_45)){
+		  form_error($form['security']['45'], t('45: Estos campos son requeridos'));
+		}
+		
+		if (empty($_46)){
+		  form_error($form['security']['46'], t('46: Estos campos son requeridos'));
+		}
+		
+		if (empty($_47A)){
+		  form_error($form['security']['47A'], t('47A: Estos campos son requeridos'));
+		}
+		
+		if (empty($_47B)){
+		  form_error($form['security']['47B'], t('47B: Estos campos son requeridos'));
+		}
+		
+		if (empty($_47C)){
+		  form_error($form['security']['47C'], t('47C: Estos campos son requeridos'));
+		}
+		
+		if (empty($_47D)){
+		  form_error($form['security']['47D'], t('47D: Estos campos son requeridos'));
+		}
+		
+		if (empty($_48)){
+		  form_error($form['justice']['48'], t('48: Estos campos son requeridos'));
+		}
+		
+		if (empty($_49)){
+		  form_error($form['justice']['49'], t('49: Estos campos son requeridos'));
+		}
+		
+		if (empty($_50)){
+		  form_error($form['justice']['50'], t('50: Estos campos son requeridos'));
+		}
+		
+		if (empty($_51)){
+		  form_error($form['justice']['51'], t('51: Estos campos son requeridos'));
+		}
+		
+		if (empty($_52)){
+		  form_error($form['justice']['52'], t('52: Estos campos son requeridos'));
+		}
+		
+		if (empty($_53)){
+		  form_error($form['justice']['53'], t('53: Estos campos son requeridos'));
+		}
+		
+		if (empty($_54)){
+		  form_error($form['justice']['54'], t('54: Estos campos son requeridos'));
+		}
+		
+		if (empty($_55)){
+		  form_error($form['justice']['55'], t('55: Estos campos son requeridos'));
+		}
+		
+		if (empty($_56)){
+		  form_error($form['justice']['56'], t('56: Estos campos son requeridos'));
+		}
+		
+		if (empty($_56)){
+		  form_error($form['justice']['57'], t('57: Estos campos son requeridos'));
+		}
+		
+		if (empty($_58)){
+		  form_error($form['justice']['58'], t('58: Estos campos son requeridos'));
+		}
+		
+		if (empty($_59)){
+		  form_error($form['justice']['59'], t('59: Estos campos son requeridos'));
+		}
+		
+		if (empty($_60)){
+		  form_error($form['justice']['60'], t('60: Estos campos son requeridos'));
+		}
+		
+		if (empty($_61)){
+		  form_error($form['justice']['61'], t('61: Estos campos son requeridos'));
+		}
+		
+		if (empty($_62)){
+		  form_error($form['justice']['62'], t('62: Estos campos son requeridos'));
+		}
+		
+		if (empty($_63)){
+		  form_error($form['justice']['63'], t('63: Estos campos son requeridos'));
+		}
+		
+		if (empty($_64)){
+		  form_error($form['justice']['64'], t('64: Estos campos son requeridos'));
+		}
+		
+		if (empty($_65)){
+		  form_error($form['justice']['65'], t('65: Estos campos son requeridos'));
+		}
+		
+		if (empty($_66)){
+		  form_error($form['justice']['66'], t('66: Estos campos son requeridos'));
+		}
+		
+		if (empty($_67)){
+		  form_error($form['justice']['67'], t('67: Estos campos son requeridos'));
+		}
+		
+		if (empty($_68)){
+		  form_error($form['justice']['68'], t('68: Estos campos son requeridos'));
+		}
+		
+		if (empty($_69)){
+		  form_error($form['justice']['69'], t('69: Estos campos son requeridos'));
+		}
+		
+		if (empty($_70)){
+		  form_error($form['justice']['70'], t('70: Estos campos son requeridos'));
+		}
+		
+		if (empty($_71)){
+		  form_error($form['justice']['71'], t('71: Estos campos son requeridos'));
+		}
+		
+		if (empty($_72)){
+		  form_error($form['justice']['72'], t('72: Estos campos son requeridos'));
+		}
+		
+		if (empty($_73)){
+		  form_error($form['justice']['73'], t('73: Estos campos son requeridos'));
+		}
+		
+		if (empty($_75)){
+		  form_error($form['drugs']['75'], t('75: Estos campos son requeridos'));
+		}
+		
+		if (empty($_76)){
+		  form_error($form['drugs']['76'], t('76: Estos campos son requeridos'));
+		}
+		
+		if (empty($_77)){
+		  form_error($form['drugs']['77'], t('77: Estos campos son requeridos'));
+		}
+		
+		if (empty($_82)){
+		  form_error($form['sexual']['82'], t('82: Estos campos son requeridos'));
+		}
+		
+		if (empty($_90)){
+		  form_error($form['sexual']['90'], t('90: Estos campos son requeridos'));
+		}
+		
+		if (empty($_91)){
+		  form_error($form['sexual']['91'], t('91: Estos campos son requeridos'));
+		}
+		
+		if (empty($_92)){
+		  form_error($form['sexual']['92'], t('92: Estos campos son requeridos'));
+		}
+		
+		if (empty($_93)){
+		  form_error($form['sexual']['93'], t('93: Estos campos son requeridos'));
+		}
+		
+		if (empty($_94)){
+		  form_error($form['sexual']['94'], t('94: Estos campos son requeridos'));
+		}
+		
+		if (empty($_95)){
+		  form_error($form['sexual']['95'], t('95: Estos campos son requeridos'));
+		}
+		
+		if (empty($_96)){
+		  form_error($form['sexual']['96'], t('96: Estos campos son requeridos'));
+		}
+		
+		if ($_9 === 'Otro (favor especificar)' && empty($_9Otro)) {
+		  form_error($form['documentation']['9Otro'], t('9.Otro (favor especificar): Estos campos son requeridos'));
+		}
+		
+		if ($_10 === 'No') {
+		  if (empty($_10A)) {
+		    form_error($form['documentation']['10A'], t('10A. Si aún no tienes acta de nacimiento, ¿cuál es la razón principal por la que no tienes un acta?: Estos campos son requeridos'));
+		  }
+		  
+		  if($_10A === 'Otro (favor especificar)') {
+		    form_error($form['documentation']['10AOtro'], t('10A.Otro (favor especificar): Estos campos son requeridos'));
+		  }
+		}
+		
+		if ($_11 === 'Otro (favor especificar)' && empty($_11Otro)) {
+		  form_error($form['documentation']['11Otro'], t('11.Otro (favor especificar): Estos campos son requeridos'));
+		}
+		
+		if($_13 === 'Sí') {
+		  if (empty($_13A)) {
+		    form_error($form['documentation']['13A'], t('13A. Si la respuesta es afirmativa, ¿cuántos tienes?: Campo requerido'));
+		  }
+		  if ((int)($_13dob1['year']) < ((int)$currentYear - 12)) {
+		    form_error($form['documentation']['13A1']['dob1'], t('13A Hijo 1. Año de nacimiento no válido'));
+		  }
+		  if(empty($_13sex1)) {
+		    form_error($form['documentation']['13A1']['sex1'], t('13A Hijo 1. Sexo: Campo requerido'));
+		  }
+		  if(empty($_13samehouse1)) {
+		    form_error($form['documentation']['13A1']['samehouse1'], t('13A Hijo 1. ¿Tú y el/la niño/a viven en la misma casa?: Campo requerido'));
+		  }
+		  if(empty($_13certificate1)) {
+		    form_error($form['documentation']['13A1']['certificate1'], t('13A Hijo 1. ¿Este niño/a tiene un acta de nacimiento dominicana?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Escuela' || $_16 === 'Universidad') {
+		  if (empty($_16A)) {
+		    form_error($form['education']['16A'], t('16A. ¿Cuál es el nombre de tu escuela o universidad?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Escuela') {
+		  if (empty($_16B)) {
+		    form_error($form['education']['16B'], t('16B. ¿Qué grado estás cursando actualmente?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Escuela') {
+		  if (empty($_16C)) {
+		    form_error($form['education']['16C'], t('16C. ¿Cuál nivel?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Escuela') {
+		  if (empty($_16D)) {
+		    form_error($form['education']['16D'], t('16D. ¿A qué tanda asistes?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Escuela') {
+		  if (empty($_17)) {
+		    form_error($form['education']['17'], t('17. En el último año, ¿cuántas veces has faltado a la escuela por un día completo sin excusa?: Campo requerido'));
+		  }
+		}
+	
+		if($_16 === 'Ninguno' || $_16 === 'Escuela') {
+		  if (empty($_18)) {
+		    form_error($form['education']['18'], t('18. Desde que iniciaste en el proyecto Alerta Joven a la fecha, ¿has sido suspendido/a de la escuela?: Campo requerido'));
+		  }
+		}
+		
+		if($_16 === 'Ninguno' || $_16 === 'Escuela') {
+		  if (empty($_19)) {
+		    form_error($form['education']['19'], t('19. ¿Actualmente estás asistiendo a algún programa de educación para jóvenes y adultos?: Campo requerido'));
+		  }
+		}
+		
+		if($_20 === 'Sí') {
+		  if (empty($_20A)) {
+		    form_error($form['education']['20A'], t('20A. Si la respuesta es afirmativa, ¿cuáles cursos?: Campo requerido'));
+		  }
+		}
+		
+		if($_24 === 'Otra meta') {
+		  if (empty($_24Otro)) {
+		    form_error($form['education']['24Otro'], t('24.Otra meta (favor especificar): Campo requerido'));
+		  }
+		}
+		
+		if($_25 === 'Sí') {
+		  if (empty($_26)) {
+		    form_error($form['labor']['26'], t('26. ¿Durante la última semana, ¿realizaste algún trabajo por paga o ganancia?: Campo requerido'));
+		  }
+		}
+		
+		if($_25 === 'Sí' && $_26 === 'Sí') {
+		  if (empty($_26A)) {
+		    form_error($form['labor']['26A'], t('26A. ¿Describe lo que haces en tu trabajo?: Campo requerido'));
+		  }
+		  
+		  if (empty($_27)) {
+		    form_error($form['labor']['27'], t('27. ¿Cuándo empezaste en tu trabajo actual?: Campo requerido'));
+		  }
+		  
+		  if (empty($_28)) {
+		    form_error($form['labor']['28'], t('28. ¿En qué lugar realizas este trabajo?: Campo requerido'));
+		  }
+		  
+		  if($_28 === 'Otros (especifica)') {
+		    if (empty($_28Otro)) {
+		      form_error($form['labor']['28Otro'], t('28. Otros (especifica): Campo requerido'));
+		    }
+		  }
+		  
+		  if (empty($_29)) {
+		    form_error($form['labor']['29'], t('29. ¿Cuántas horas trabajas en un día?: Campo requerido'));
+		  }
+		  
+		  if (empty($_30)) {
+		    form_error($form['labor']['30'], t('30. ¿Cuántos días trabajas en una semana?: Campo requerido'));
+		  }
+		  
+		  if (empty($_31)) {
+		    form_error($form['labor']['31'], t('31. En promedio, ¿cuánto ganas en una semana?: Campo requerido'));
+		  }
+		  
+		  if (empty($_32)) {
+		    form_error($form['labor']['32'], t('32. ¿En este trabajo tú eres…?: Campo requerido'));
+		  }
+		  
+		  if($_32 === 'Otros (especifica)') {
+		    if (empty($_32Otro)) {
+		      form_error($form['labor']['32Otro'], t('32. Otros (especifica): Campo requerido'));
+		    }
+		  }		  
+		}
+		
+		if ($_33 === 'Sí') {
+		  if (empty($_33A)) {
+		    form_error($form['labor']['33A'], t('33A. Describe lo que haces en este trabajo: Campo requerido'));
+		  }
+		  
+		  if (empty($_34)) {
+		    form_error($form['labor']['34'], t('34. ¿Cuándo comenzaste este trabajo?: Campo requerido'));
+		  }
+		  
+		  if (empty($_35)) {
+		    form_error($form['labor']['35'], t('35. ¿En qué lugar realizas este trabajo?: Campo requerido'));
+		  }
+		  
+		  if ($_35 === 'Otros (especifica)' && empty($_35Otro)) {
+		    form_error($form['labor']['35Otro'], t('35. Otros (especifica): Campo requerido'));
+		  }
+		  
+		  if (empty($_36)) {
+		    form_error($form['labor']['36'], t('36. ¿Cuántas horas trabajas en un día?: Campo requerido'));
+		  }
+		  
+		  if (empty($_37)) {
+		    form_error($form['labor']['37'], t('37. ¿Cuántos días trabajas en una semana?: Campo requerido'));
+		  }
+		  
+		  if (empty($_38)) {
+		    form_error($form['labor']['38'], t('38. ¿En este trabajo tú eres…?: Campo requerido'));
+		  }
+		  
+		  if ($_38 === 'Otros (especifica)' && empty($_38Otro)) {
+		    form_error($form['labor']['38'], t('38. Otros (especifica): Campo requerido'));
+		  }
+		}
+		
+// 		if ($_49 === 'Sí') {
+// 		  if (empty($_49A)) {
+// 		    form_error($form['justice']['49A'], t('49A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+// 		  }
+// 		}
+		
+		if ($_50 === 'Sí') {
+		  if (empty($_50A)) {
+		    form_error($form['justice']['50A'], t('50A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_51 === 'Sí') {
+		  if (empty($_51A)) {
+		    form_error($form['justice']['51A'], t('51A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_54 === 'Sí') {
+		  if (empty($_54A)) {
+		    form_error($form['justice']['54A'], t('54A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_55 === 'Sí') {
+		  if (empty($_55A)) {
+		    form_error($form['justice']['55A'], t('55A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_56 === 'Sí') {
+		  if (empty($_56A)) {
+		    form_error($form['justice']['56A'], t('56A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_57 === 'Sí') {
+		  if (empty($_57A)) {
+		    form_error($form['justice']['57A'], t('57A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_58 === 'Sí') {
+		  if (empty($_58A)) {
+		    form_error($form['justice']['58A'], t('58A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_59 === 'Sí') {
+		  if (empty($_59A)) {
+		    form_error($form['justice']['59A'], t('59A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_60 === 'Sí') {
+		  if (empty($_60A)) {
+		    form_error($form['justice']['60A'], t('60A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_61 === 'Sí') {
+		  if (empty($_61A)) {
+		    form_error($form['justice']['61A'], t('61A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_62 === 'Sí') {
+		  if (empty($_62A)) {
+		    form_error($form['justice']['62A'], t('62A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_63 === 'Sí') {
+		  if (empty($_63A)) {
+		    form_error($form['justice']['63A'], t('63A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_74 === 'Sí') {
+		  if (empty($_74A)) {
+		    form_error($form['justice']['74A'], t('74A. Si la respuesta es afirmativa, en cuál(es) lugar(es) pasó: Campo requerido'));
+		  }
+		}
+		
+		if ($_77 === 'Sí') {
+		  if (empty($_78)) {
+		    form_error($form['drugs']['78'], t('78. En los últimos 3 meses, ¿has usado una aguja para inyectarte droga?: Campo requerido'));
+		  }
+		  
+		  if (empty($_79)) {
+		    form_error($form['drugs']['79'], t('79. Marca con una X todos los nombres de drogas que hayas probado en algún momento: Campo requerido'));
+		  }
+		  
+		}
+		
+   }
+ }
+ 
+ /**
+  * Implements the hook_permissions
+  */
+ function ajexitv2_permission() {
+	return array(
+		'access ajexitv2 content' => array(
+				'title' => t('Access content for ajexitv2 module'),
+				'description' => t('Control the access for the Exit form'),
+		)
+	);
+ }
+
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajexitv2_page() {
+	return drupal_get_form('ajexitv2_form');
+}
+
+/**
+ * Script to insert the new form data
+ */
+function _ajexitv2_insert_data(
+      $_9,
+      $_9Otro,
+      $_10,
+      $_10A,
+      $_10AOtro,
+      $_10_1,
+      $_11,
+      $_11Otro,
+      $_12,
+      $_13,
+      $_13A,
+      $_dob1,
+      $_sex1,
+      $_samehouse1,
+      $_certificate1,
+      $_dob2,
+      $_sex2,
+      $_samehouse2,
+      $_certificate2,
+      $_dob3,
+      $_sex3,
+      $_samehouse3,
+      $_certificate3,
+      $_dob4,
+      $_sex4,
+      $_samehouse4,
+      $_certificate4,
+      $_14,
+      $_15,
+      $_16,
+      $_16A,
+      $_16B,
+      $_16C,
+      $_16D,
+      $_17,
+      $_18,
+      $_19,
+      $_20,
+      $_20A,
+      $_21,
+      $_22,
+      $_23,
+      $_24,
+      $_24Otro,
+      $_25,
+      $_26,
+      $_26A,
+      $_27,
+      $_28,
+      $_28Nombre,
+      $_28Otro,
+      $_29,
+      $_30,
+      $_31,
+      $_32,
+      $_32Otro,
+      $_33,
+      $_33A,
+      $_34,
+      $_35,
+      $_35Nombre,
+      $_35Otro,
+      $_36,
+      $_37,
+      $_38,
+      $_38Otro,
+      $_39,
+      $_40,
+      $_41,
+      $_42,
+      $_43,
+      $_44,
+      $_45,
+      $_46,
+      $_47A,
+      $_47B,
+      $_47C,
+      $_47D,
+      $_48,
+      $_49,
+      $_49A,
+      $_50,
+      $_50A,
+      $_51,
+      $_51A,
+      $_52,
+      $_53,
+      $_54,
+      $_54A,
+      $_55,
+      $_55A,
+      $_56,
+      $_56A,
+      $_57,
+      $_57A,
+      $_58,
+      $_58A,
+      $_59,
+      $_59A,
+      $_60,
+      $_60A,
+      $_61,
+      $_61A,
+      $_62,
+      $_62A,
+      $_63,
+      $_63A,
+      $_64,
+      $_65,
+      $_66,
+      $_67,
+      $_68,
+      $_69,
+      $_70,
+      $_71,
+      $_72,
+      $_73,
+      $_73A,
+      $_74,
+      $_74A,
+      $_75,
+      $_76,
+      $_76A,
+      $_76B,
+      $_77,
+      $_78,
+      $_79,
+      $_79Otro,
+      $_82,
+      $_83,
+      $_84,
+      $_85,
+      $_86,
+      $_87,
+      $_87Otro,
+      $_88,
+      $_89,
+      $_89B,
+      $_90,
+      $_91,
+      $_92,
+      $_93,
+      $_94,
+      $_94A,
+      $_94AOtro,
+      $_95,
+      $_95A,
+      $_95AOtro,
+      $_96,
+      $_96A,
+      $_96AOtro,
+      $_97,
+      $_98,
+      $_98Otro,
+      $_99,
+			$uuid,
+			$provider_id) {
+	global $user;
+	$currentDate = format_date(time(), 'custom', 'Y-m-d H:i:s');
+	
+	$child1_date_string = $_dob1['year'].'-'. (strlen($_dob1['month']) === 1? '0'.$_dob1['month']:$_dob1['month']).'-'.(strlen($_dob1['day']) === 1? '0'.$_dob1['day']:$_dob1['day']);
+	$child2_date_string = $_dob2['year'].'-'. (strlen($_dob2['month']) === 1? '0'.$_dob2['month']:$_dob2['month']).'-'.(strlen($_dob2['day']) === 1? '0'.$_dob2['day']:$_dob2['day']);
+	$child3_date_string = $_dob3['year'].'-'. (strlen($_dob3['month']) === 1? '0'.$_dob3['month']:$_dob3['month']).'-'.(strlen($_dob3['day']) === 1? '0'.$_dob3['day']:$_dob3['day']);
+	$child4_date_string = $_dob4['year'].'-'. (strlen($_dob4['month']) === 1? '0'.$_dob4['month']:$_dob4['month']).'-'.(strlen($_dob4['day']) === 1? '0'.$_dob4['day']:$_dob4['day']);
+		
+	$tableFields =  array(
+ 		'createdAt' => $currentDate,
+ 		'lastModifiedAt' => $currentDate,
+		'created' => $currentDate,
+		'uuid' => $uuid,
+		'provider_id' => $provider_id,
+		'user_name' => $user->name,
+	    '9Dóndenaciste' => $_9,
+	    '9Dóndenacisteotro' => $_9Otro,
+	    '10Tienesunactadenacimientodominicana' => $_10,
+	    '10ASiaúnnotienesactadenacimiento' => $_10A,
+	    '10AOtroEspecificar' => $_10A,
+	    '10_1Tienescédula' => $_10_1,
+	    '11Cuálestuidiomaprincipal' => $_11,
+	    '11IdiomaprincipalOtro' => $_11Otro,
+	    '12Cuálestuestadocivil' => $_12,
+	    '13Tieneshijos' => $_13,
+	    '13ASilarespuestaesafirmativa' => $_13,
+	    '13AFecha1' => $child1_date_string,
+	    '13Asexo1' => $_sex1,
+	    '13AMismaCasa1' => $_samehouse1,
+	    '13AActaDeNacimiento1' => $_certificate1,
+	    '13Afecha2' => $child2_date_string,
+	    '13Asexo2' => $_sex2,
+	    '13AMismaCasa2' => $_samehouse2,
+	    '13AActaDeNacimiento2' => $_certificate2,
+	    '13Afecha3' => $child3_date_string,
+	    '13Asexo3' => $_sex3,
+	    '13AMismaCasa3' => $_samehouse3,
+	    '13AActaDeNacimiento3' => $_certificate3,
+	    '13Afecha4' => $child4_date_string,
+	    '13Asexo4' => $_sex4,
+	    '13AMismaCasa4' => $_samehouse4,
+	    '13AActaDeNacimiento4' => $_certificate4,
+	    '14Sabesleeryescribir' => $_14,
+	    '15Cuálesel' => $_15,
+	    '16Actualmenteestasasistiendoa' => $_16,
+	    '16ACuáleselnombredetuescuela' => $_16A,
+	    '16BQuégradoestascursandoactualmente' => $_16B,
+	    '16CCuálnivel' => $_16C,
+	    '16DAquétandaasistes' => $_16D,
+	    '17EnElUltimoAnoCuantaVecesHasFaltadoEscuela' => $_17,
+	    '18Enlosúltimos12meseshassidosuspendidoadelaescuela' => $_18,
+	    '19ActualmenteEstasAsistiendoAlgunProgramaDeEduca' => $_19,
+	    '20Hasrepetidoalgúncursoenlaescuela' => $_20,
+	    '20ASilarespuestaesafirmativacuálescursos' => $_20A,
+	    '21Hascompletadoalgúncursotécnico' => $_21,
+	    '22Actualmentetededicasa' => $_22,
+	    '23Hassidos' => $_23,
+	    '24Megustaríaleermejor' => $_24['Leer mejor'] !== 0? 'true':'',
+	    '24Megustaríamejorarenmatemáticas' => $_24['En matemáticas'] !== 0? 'true':'',
+	    '24Megustaríamejorarenciencias' => $_24['En ciencias'] !== 0? 'true':'',
+	    '24Megustaríaestarenlaescuela' => $_24['Estar en la escuela'] !== 0? 'true':'',
+	    '24Megustaríahablarmejorelespañol' => $_24['Hablar mejor el español'] !== 0? 'true':'',
+	    '24Megustaríahablarelinglés' => $_24['Hablar mejor el inglés'] !== 0? 'true':'',
+	    '24Megustaríaterminarlabásica' => $_24['Terminar la educación básica'] !== 0? 'true':'',
+	    '24Megustaríaterminarelbachillerato' => $_24['Terminar el bachillerato'] !== 0? 'true':'',
+	    '24MegustaríairalaUniversidad' => $_24['Llegar a la universidad'] !== 0? 'true':'',
+	    '24Megustaríallevarmemejorconmismaestros' => $_24['Llevarme mejor con mis maestros'] !== 0? 'true':'',
+	    '24Megustaríasentirmemásseguroenlaescuela' => $_24['Sentirme más seguro'] !== 0? 'true':'',
+	    '24Megustaríamejorarmiscalificaciones' => $_24['Mejorar mis calificaciones'] !== 0? 'true':'',
+	    '24Otrasmetas' => $_24Otro,
+	    '25Hasrealizadountrabajoporpaga' => $_25,
+	    '26Durantel' => $_26,
+	    '26ADescribeloquehaceseneltrabajoactual' => $_26A,
+	    '27Mes' => $_27['month'],
+	    '27Año' => $_27['year'],
+	    '28Enquélugarrealizasestetrabajo' => $_28,
+	    '28EnquélugarNombre' => $_28Nombre,
+	    '28EnquélugarOtros' => $_28Otro,
+	    '29Cuántashorastrabajasenundía' => $_29,
+	    '30Cuántosdíastrabajasenunasemana' => $_30,
+	    '31Enpromediocuántoganasenunasemana' => $_31,
+	    '32Enestetrabajotúeres' => $_32,
+	    '32OtroTúeres' => $_32Otro,
+	    '33Actualme' => $_33,
+	    '33ADescribeloquehacesenestetrabajo' => $_33A,
+	    '34Mes' => $_34['month'],
+	    '34Año' => $_34['year'],
+	    '35Enquélugarrealizasestetrabajo' => $_35,
+	    '35EnquélugarrealizasestetrabajoNombre' => $_35Nombre,
+	    '35EnquélugarrealizasestetrabajoOtros' => $_35Otro,
+	    '36Cuántashorastrabajasenundía' => $_36,
+	    '37Cuántosdíastrabajasenunasemana' => $_37,
+	    '38Enestetrabajotúeres' => $_38,
+	    '38EnestetrabajotúeresOtro' => $_38Otro,
+	    '39Hasbusca' => $_39,
+	    '40Hasparti' => $_40,
+	    '41Conquéfr' => $_41,
+	    '42Conquéfr' => $_42,
+	    '43Enquémedidatuvidahasidoafectadaporladelincuencia' => $_43,
+	    '44Entuopin' => $_44,
+	    '45Tepreocu' => $_45,
+	    '46Lapreocu' => $_46,
+	    '47AUnpolicíameamenazóverbalmente' => $_47A,
+	    '47BUnpolicíamecobródinerosinjustificación' => $_47B,
+	    '47CUnpolicíamequitóalgoquemepertenecia' => $_47C,
+	    '47DUnpolicíamemaltratófísicamente' => $_47D,
+	    '48Hassidot' => $_48,
+	    '49Hassidodetenidoporlapolicíaporalgúnmotivo' => $_49,
+	    '49ACasa' => $_49A === 'Casa'? 'true':'',
+	    '49AEscuela' => $_49A === 'Escuela'? 'true':'',
+	    '49ABarrio' => $_49A === 'Barrio'? 'true':'',
+	    '50Hassidod' => $_50,
+	    '50ACasa' => $_50A === 'Casa'? 'true':'',
+	    '50AEscuela' => $_50A === 'Escuela'? 'true':'',
+	    '50ABarrio' => $_50A === 'Barrio'? 'true':'',
+	    '51Algunode' => $_51,
+	    '51ACasa' => $_51A === 'Casa'? 'true':'',
+	    '51AEscuela' => $_51A === 'Escuela'? 'true':'',
+	    '51ABarrio' => $_51A === 'Barrio'? 'true':'',
+	    '52Enlosúlt' => $_52,
+	    '53Enlosúlt' => $_53,
+	    '54Enlosúlt' => $_54,
+	    '55Enlosúlt' => $_55,
+	    '56Enlosúlt' => $_56,
+	    '57Enlosúlt' => $_57,
+	    '58Enlosúlt' => $_58,
+	    '59Enlosúlt' => $_59,
+	    '60Enlosúlt' => $_60,
+	    '61Enlosúlt' => $_61,
+	    '62Enlosúlt' => $_62,
+	    '63Enlosúlt' => $_63,
+	    '54ACasa' => $_54A === 'Casa'? 'true':'',
+	    '54AEscuela' => $_54A === 'Escuela'? 'true':'',
+	    '54ABarrio' => $_54A === 'Barrio'? 'true':'',
+	    '55ACasa' => $_55A === 'Casa'? 'true':'',
+	    '55AEscuela' => $_55A === 'Escuela'? 'true':'',
+	    '55ABarrio' => $_55A === 'Barrio'? 'true':'',
+	    '56ACasa' => $_56A === 'Casa'? 'true':'',
+	    '56AEscuela' => $_56A === 'Escuela'? 'true':'',
+	    '56ABarrio' => $_56A === 'Barrio'? 'true':'',
+	    '57ACasa' => $_57A === 'Casa'? 'true':'',
+	    '57AEscuela' => $_57A === 'Escuela'? 'true':'',
+	    '57ABarrio' => $_57A === 'Barrio'? 'true':'',
+	    '58ACasa' => $_58A === 'Casa'? 'true':'',
+	    '58AEscuela' => $_58A === 'Escuela'? 'true':'',
+	    '58ABarrio' => $_58A === 'Barrio'? 'true':'',
+	    '59ACasa' => $_59A === 'Casa'? 'true':'',
+	    '59AEscuela' => $_59A === 'Escuela'? 'true':'',
+	    '59ABarrio' => $_59A === 'Barrio'? 'true':'',
+	    '60ACasa' => $_60A === 'Casa'? 'true':'',
+	    '60AEscuela' => $_60A === 'Escuela'? 'true':'',
+	    '60ABarrio' => $_60A === 'Barrio'? 'true':'',
+	    '61ACasa' => $_61A === 'Casa'? 'true':'',
+	    '61AEscuela' => $_61A === 'Escuela'? 'true':'',
+	    '61ABarrio' => $_61A === 'Barrio'? 'true':'',
+	    '62ACasa' => $_62A === 'Casa'? 'true':'',
+	    '62AEscuela' => $_62A === 'Escuela'? 'true':'',
+	    '62ABarrio' => $_62A === 'Barrio'? 'true':'',
+	    '63ACasa' => $_63A === 'Casa'? 'true':'',
+	    '63AEscuela' => $_63A === 'Escuela'? 'true':'',
+	    '63ABarrio' => $_63A === 'Barrio'? 'true':'',
+	    '64Enlosúlt' => $_64,
+	    '65Hasdañad' => $_65,
+	    '66Algunavezhassidoatacadoorobado' => $_66,
+	    '67Algunavezhasatacadoorobadoaalguien' => $_67,
+	    '68Algunavezhassidosecuestrado' => $_68,
+	    '69Algunavezhassecuestradoaalguien' => $_69,
+	    '70Algunave' => $_70,
+	    '71Algunave' => $_71,
+	    '72Algunavezhasvendidooayudadoavenderdrogas' => $_72,
+	    '73Hasestadoinvolucradoenunapandilla' => $_73,
+	    '73AActualm' => $_73A,
+	    '74Comparte' => $_74,
+	    '74ACasa' => $_74A === 'Casa'? 'true':'',
+	    '74AEscuela' => $_74A === 'Escuela'? 'true':'',
+	    '74ABarrio' => $_74A === 'Barrio'? 'true':'',
+	    '75Enlosúlt' => $_75,
+	    '76Algunave' => $_76,
+	    '76AEnlosúl' => $_76A,
+	    '76BEnLosUltimos12MesesHasTomado5Vasos' => $_76B,
+	    '77Hasproba' => $_77,
+	    '78Hasusado' => $_78,
+	    '79AMarihuana' => $_79['Marihuana'] !== 0? 'true':'',
+	    '79BCrack' => $_79['Crack'] !== 0? 'true':'',
+	    '79CCocaínaenpolvo' => $_79['Cocaína en polvo'] !== 0? 'true':'',
+	    '79DHeroína' => $_79['Heroína'] !== 0? 'true':'',
+	    '79EMetanfetaminaocristal' => $_79['Metanfetamina o cristal'] !== 0? 'true':'',
+	    '79FxtasisMDMA' => $_79['Éxtasis/MDMA'] !== 0? 'true':'',
+	    '79GInhalantescomopegamentocementopinturaspray' => $_79['Inhalantes como pegamento, cemento, pintura, spray'] !== 0? 'true':'',
+	    '79IOtrosespecifica' => $_79Otro,
+	    '82Algunavezhastenidorelacionessexuales' => $_82,
+	    '83Quéedadtenías' => $_83,
+	    '84Conquiéneshastenidorelacionessexuales' => $_84,
+	    '85Concuánt' => $_85,
+	    '86Laúltima' => $_86,
+	    '87ANoutilicéningún' => $_87 === 'No utilicé ningún método para prevenir el embarazo'? 'true':'',
+	    '87BCondón' => $_87 === 'Condón'? 'true':'',
+	    '87CCondónfemenino' => $_87 === 'Condón femenino'? 'true':'',
+	    '87DPíldoraanticonceptiva' => $_87 === 'Píldora anticonceptiva'? 'true':'',
+	    '87ERitmoma' => $_87 === 'Ritmo (mantener relaciones en días no fértiles o cuando no hay ovulación)'? 'true':'',
+	    '87FRetirod' => $_87 === 'Retiro (detener la penetración antes de eyacular)'? 'true':'',
+	    '87GMelamujereslactando' => $_87 === 'Mela (mujeres lactando)'? 'true':'',
+	    '87HDIUcomoMirenaoParagard' => $_87 === 'DIU (como Mirena o Paragard)'? 'true':'',
+	    '87IInyecci' => $_87 === 'Inyección (como Depo-Provera), un parche (Ortho Evra), o un anillo (como NuvaRing)'? 'true':'',
+	    '87JImplant' => $_87 === 'Implante o norplant (como Implanon o Nexplanon)'? 'true':'',
+	    '87KEsterilizaciónfemenina' => $_87 === 'Esterilización femenina'? 'true':'',
+	    '87LEsterilizaciónmasculina' => $_87 === 'Esterilización masculina'? 'true':'',
+	    '87MNoséInseguro' => $_87 === 'No sé/Inseguro'? 'true':'',
+	    '87NOtro' => $_87Otro,
+	    '88Algunave' => $_88,
+	    '89Algunave' => $_89,
+	    '89ASilares' => $_89B,
+	    '90Siquisie' => $_90,
+	    '91Siquisie' => $_91,
+	    '92Tesiente' => $_92,
+	    '93Algunave' => $_93,
+	    '94Algunave' => $_94,
+	    '94AOrientadoraoPsicólogoadelaescuela' => $_94A['Orientador(a) o Psicólogo(a) de la escuela'] !== 0? 'true':'',
+	    '94APadreoMadre' => $_94A['Padre o Madre'] !== 0? 'true':'',
+	    '94APromotoradeSalud' => $_94A['Promotor(a) de Salud'] !== 0? 'true':'',
+	    '94AProfesoradelaescuela' => $_94A['Profesor(a) de la escuela'] !== 0? 'true':'',
+	    '94AInternet' => $_94A['Internet'] !== 0? 'true':'',
+	    '94AAmigos' => $_94A['Amigos'] !== 0? 'true':'',
+	    '94AOtroEspecifique' => $_94AOtro,
+	    '95Algunave' => $_95,
+	    '95AOrientadoraoPsicólogoadelaescuela' => $_95A['Orientador(a) o Psicólogo(a) de la escuela'] !== 0? 'true':'',
+	    '95APadreoMadre' => $_95A['Padre o Madre'] !== 0? 'true':'',
+	    '95APromotoradeSalud' => $_95A['Promotor(a) de Salud'] !== 0? 'true':'',
+	    '95AProfesoradelaescuela' => $_95A['Profesor(a) de la escuela'] !== 0? 'true':'',
+	    '95AInternet' => $_95A['Internet'] !== 0? 'true':'',
+	    '95AAmigos' => $_95A['Amigos'] !== 0? 'true':'',
+	    '95AOtroEspecifique' => $_95AOtro,
+	    '96Algunave' => $_96,
+	    '96AOrientadoraoPsicólogoadelaescuela' => $_96A['Orientador(a) o Psicólogo(a) de la escuela'] != 0? 'true':'',
+	    '96APadreoMadre' => $_96A['Padre o Madre'] != 0? 'true':'',
+	    '96APromotoradeSalud' => $_96A['Promotor(a) de Salud'] != 0? 'true':'',
+	    '96AProfesoradelaescuela' => $_96A['Profesor(a) de la escuela'] != 0? 'true':'',
+	    '96AInternet' => $_96A['Internet'] != 0? 'true':'',
+	    '96AAmigos' => $_96A['Amigos'] != 0? 'true':'',
+	    '96AOtroEspecifique' => $_96AOtro,
+	    '97FechaRevision' => $_97,
+	    '98EstatusdeSalida' => $_98,
+	    '98AOtro' => $_98Otro,
+	    '24_99Comentarios' => $_99
+	);
+
+    	$exit_entry = db_insert('aj_exit')
+    	->fields($tableFields);
+    	$exit_entry->execute();
+	}
+
+function _ajexitv2_insert_data_short(
+			$_97,
+			$_98,
+			$_98Otro,
+			$_99,
+			$uuid,
+			$provider_id) {
+		global $user;
+		$currentDate = format_date(time(), 'custom', 'Y-m-d H:i:s');
+	
+		$tableFields =  array(
+				'createdAt' => $currentDate,
+				'lastModifiedAt' => $currentDate,
+				'created' => $currentDate,
+				'uuid' => $uuid,
+				'provider_id' => $provider_id,
+				'user_name' => $user->name,
+				'22FechadeRevisión' => $_97,
+				'23EstatusdeSalida' => $_98,
+				'23AOtro' => $_98Otro,
+				'24Comentarios' => $_99,
+		);
+	
+		$exit_entry = db_insert('aj_exit')
+		->fields($tableFields);
+		$exit_entry->execute();
+	
+	
+	}
+	
+
+/**
+ * Get the beneficiary info
+ */
+function _ajexitv2_getBeneficiaryInfo($uuid) {
+
+	$query = db_select('aj_registration', 'reg');
+	$query->fields('reg', array('nombre'));
+	$query->fields('reg', array('apellido'));
+	$query->fields('reg', array('uuid'));
+	$query->condition('uuid', $uuid);
+	$query->orderBy('nombre', 'ASC');
+	$query->range(0,1);
+
+	$result = $query->execute();
+	return $result->fetchAssoc();
+}
+
+/**
+ * Checks if a given uuid already has an exit entry in the database
+ */
+function _ajexitv2_alreadyExist($uuid) {
+
+	$query = db_select('aj_exit', 'ajexit');
+	$query->fields('ajexit', array('uuid'));
+	$query->condition('uuid', $uuid);
+	$query->range(0,1);
+
+	$result = $query->execute();
+	$entry =  $result->fetchAssoc();
+
+	return !empty($entry);
+}
+
+function _ajexitv2_programs($uuid){
+	
+	
+}
+
+function _ajexitv2_getBeneficiaryExitActivities($uuid) {
+	
+$query = db_query(
+						"SELECT field_activity_name_value,
+				field_programname_name_value,activity_id
+FROM
+    aj_attendance
+        JOIN
+    field_data_field_activity_name ON aj_attendance.activity_id = field_data_field_activity_name.entity_id
+    join 
+    field_data_field_activity_program on field_data_field_activity_program.entity_id=field_data_field_activity_name.entity_id
+    join
+    field_data_field_program_name on field_data_field_program_name.entity_id=field_data_field_activity_program.field_activity_program_target_id
+    join
+    field_data_field_programname_name on field_data_field_programname_name.entity_id=field_data_field_program_name.field_program_name_target_id
+WHERE
+    (      field_data_field_activity_name.field_activity_name_value LIKE 'Obtienen documentación -%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Obtienen empleo%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan capacitación%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Reinsertados en la escuela%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Graduados de EPC%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan LVPE%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan La Compañía%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan Estrella Jóvenes%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan QLS%'
+    ) 
+    AND uuid=:uuid",
+						array(
+										':uuid' => $uuid
+								));
+		/*
+		$result = $query->execute();
+		$Exitactivity=  $result->fetchAll();
+		return !empty($Exitactivity);
+		*/
+		return $query->fetchAll();
+	
+	}
+	// Count the activities per uuid 
+function _ajexitv2_getBeneficiaryExitActivitiesCount($uuid) {
+	
+		$query = db_query(
+				"SELECT activity_id,
+				field_programname_name_value,count(aj_attendance.uuid) as cantidad
+FROM
+    aj_attendance
+        JOIN
+    field_data_field_activity_name ON aj_attendance.activity_id = field_data_field_activity_name.entity_id
+    join
+    field_data_field_activity_program on field_data_field_activity_program.entity_id=field_data_field_activity_name.entity_id
+    join
+    field_data_field_program_name on field_data_field_program_name.entity_id=field_data_field_activity_program.field_activity_program_target_id
+    join
+    field_data_field_programname_name on field_data_field_programname_name.entity_id=field_data_field_program_name.field_program_name_target_id
+WHERE
+   		uuid=:uuid  group by field_data_field_programname_name.entity_id",
+				array(
+						':uuid' => $uuid
+				));
+		/*
+			$result = $query->execute();
+			$Exitactivity=  $result->fetchAll();
+			return !empty($Exitactivity);
+		*/
+		return $query->fetchAll();
+	
+	}
+	
+function _ajexitv2_getBeneficiaryExitActivitiesType($uuid) {
+	
+		$query = db_query(
+				"SELECT
+				field_programname_name_value
+FROM
+    aj_attendance
+        JOIN
+    field_data_field_activity_name ON aj_attendance.activity_id = field_data_field_activity_name.entity_id
+    join
+    field_data_field_activity_program on field_data_field_activity_program.entity_id=field_data_field_activity_name.entity_id
+    join
+    field_data_field_program_name on field_data_field_program_name.entity_id=field_data_field_activity_program.field_activity_program_target_id
+    join
+    field_data_field_programname_name on field_data_field_programname_name.entity_id=field_data_field_program_name.field_program_name_target_id
+WHERE
+     field_data_field_programname_name.entity_id in (2,3,18) and
+				uuid=:uuid",
+				array(
+						':uuid' => $uuid
+				));
+		/*
+			$result = $query->execute();
+			$Exitactivity=  $result->fetchAll();
+			return !empty($Exitactivity);
+		*/
+		return $query->fetchAll();
+	
+	}
+		
+/**
+ * Checks if a given uuid already has a survey entry in the database
+ */
+function _ajexitv2_survey_($uuid) { 
+	
+		$query = db_select('aj_survey', 'ajsurvey');
+		$query->fields('ajsurvey', array('uuid'));
+		$query->condition('uuid', $uuid);
+		$query->range(0,1);
+	
+		$result = $query->execute();
+		$entry =  $result->fetchAssoc();
+	
+		return !empty($entry);
+	}
+	
+	
+/**
+ * Checks if a given uuid already has a activities entries in the database
+ */
+function _ajexitv2_aj_activities_ ($uuid) {
+	
+		$query = db_select('aj_attendance', 'ajattendance');
+		$query->fields('ajattendance', array('uuid'));
+		$query->condition('uuid', $uuid);
+		$query->range(0,1);
+	
+		$result = $query->execute();
+		$entry =  $result->fetchAssoc();
+	
+		return !empty($entry);
+	}
+	
+function _ajexitv2_ajbeneficiaryprofile_getBeneficiaryActivitiesType($uuid) {
+	
+		$query = db_query(
+				'SELECT field_data_field_program_name.entity_id, activity_id, field_programname_name_value, field_activity_name_value, field_activity_date_value
+			FROM {aj_attendance}
+		join {field_data_field_activity_name} on (activity_id = field_data_field_activity_name.entity_id)
+		join {field_data_field_activity_date} on (activity_id = field_data_field_activity_date.entity_id)
+		join {field_data_field_activity_program} on (activity_id = field_data_field_activity_program.entity_id)
+		join {field_data_field_program_name} on (field_data_field_activity_program.field_activity_program_target_id = field_data_field_program_name.entity_id)
+		join {field_data_field_programname_name} on (field_data_field_programname_name.entity_id = field_data_field_program_name.field_program_name_target_id)
+			WHERE field_data_field_programname_name.entity_id in (2,3,18) and uuid = :uuid
+			order by field_programname_name_value',
+				array(
+						':uuid' => $uuid
+				));
+		return $query->fetchAllAssoc('activity_id');
+	}
+	
+function _ajexitv2_aj_exit_ ($uuid) {
+	
+		$query = db_select('aj_exit', 'ajexit');
+		$query->fields('ajexit', array('uuid'));
+		$query->condition('uuid', $uuid);
+		$query->range(0,1);
+	
+		$result = $query->execute();
+		$entry =  $result->fetchAssoc();
+	
+		return !empty($entry);
+}
+	

@@ -1,0 +1,5 @@
+name = AJ Exit Form V2
+description = Implementation of the Exit Survey V2
+core = 7.x
+;
+configure =	admin/config/content/ajexitv2
