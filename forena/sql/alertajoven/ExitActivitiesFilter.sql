@@ -14,3 +14,5 @@ UNION ALL
 SELECT 'Terminan Estrella Jóvenes - ', 'Jóvenes que han completado Estrella Jóvenes'
 UNION ALL 
 SELECT 'Terminan QLS - ', 'Jóvenes que han completado QLS'
+UNION ALL 
+SELECT 'Terminan Red Juvenil - ', 'Jóvenes que terminan Redes Juveniles'

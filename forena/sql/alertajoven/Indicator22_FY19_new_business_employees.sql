@@ -6,33 +6,33 @@ select * from (
         WHEN provider_id = 'ALL_PROVIDERS' THEN 'ALL_PROVIDERS'
         ELSE provider_name
     END AS provider_name,
-    Fem_Total,
-    Mas_Total,
-    Unk_Total,
-    11_17_total,
-    18_24_total,
-    fem_15_19_total,
-    mas_15_19_total,
-    fem_20_24_total,
-    mas_20_24_total,
-    fem_25_29_total,
-    mas_25_29_total,
+    zero_employees,
+    one_employees,
+    two_employees,
+    three_employees,
+    four_employees,
+    five_employees,
+    six_employees,
+    seven_employees,
+    eight_employees,
+    nine_employees,
+    more_ten_employees,
     Grand_Total
 FROM
     (select
     IFNULL(provider_id, 'ALL_PROVIDERS') AS provider_id,
     provider_name,
-    sum(case when sexo = 'F' then 1 else 0 end) as Fem_Total,
-    sum(case when sexo = 'M' then 1 else 0 end) as Mas_Total,
-    SUM(case when Sexo != 'M' and Sexo != 'F' then 1 else 0 end) as Unk_Total,
-    SUM(CASE WHEN age >= 11 AND age <= 17 THEN 1 ELSE 0 END) AS 11_17_total,
-    SUM(CASE WHEN age >= 18 AND age <= 24 THEN 1 ELSE 0 END) AS 18_24_total,
-    SUM(CASE WHEN sexo = 'F' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS fem_15_19_total,
-    SUM(CASE WHEN sexo = 'M' AND age >= 15 AND age <= 19 THEN 1 ELSE 0 END) AS mas_15_19_total,
-    SUM(CASE WHEN sexo = 'F' AND age >= 20 AND age <= 24 THEN 1 ELSE 0 END) AS fem_20_24_total,
-    SUM(CASE WHEN sexo = 'M' AND age >= 20 AND age <= 24 THEN 1 ELSE 0 END) AS mas_20_24_total,
-    SUM(CASE WHEN sexo = 'F' AND age >= 25 AND age <= 29 THEN 1 ELSE 0 END) AS fem_25_29_total,
-    SUM(CASE WHEN sexo = 'M' AND age >= 25 AND age <= 29 THEN 1 ELSE 0 END) AS mas_25_29_total,    
+    sum(case when 14_2CuantosEmpleadosEnTuEmpresa = 'Sólo yo' then 1 else 0 end) as zero_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 1 then 1 else 0 end) as one_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 2 then 1 else 0 end) as two_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 3 then 1 else 0 end) as three_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 4 then 1 else 0 end) as four_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 5 then 1 else 0 end) as five_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 6 then 1 else 0 end) as six_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 7 then 1 else 0 end) as seven_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 8 then 1 else 0 end) as eight_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) = 9 then 1 else 0 end) as nine_employees,
+    sum(case when cast(14_2CuantosEmpleadosOtro AS UNSIGNED) >= 10 then 1 else 0 end) as more_ten_employees,
     count(distinct uuid) as Grand_Total
     from
 (
@@ -42,6 +42,8 @@ SELECT distinct
     reg.dob,
     DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
     reg.provider_id,
+    14_2CuantosEmpleadosEnTuEmpresa,
+    14_2CuantosEmpleadosOtro,
     agency.field_agency_name_value as provider_name
 FROM
     bitnami_drupal7.aj_labor labor
@@ -71,7 +73,8 @@ and reg.provider_id in (:provider_id)
 --END
 
 AND (
-   (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos',  'Mayores ingresos', 'Mejor planificación', 'Mejor atención al cliente', 'Mayor variedad de productos o servicios ofrecidos', 'Mayor conocimiento de tu negocio'))
+      14_2CuantosEmpleadosEnTuEmpresa = 'Sólo yo'
+   OR 14_2CuantosEmpleadosOtro != ''
 )
 GROUP BY UUID) uniqueRecords
 group by provider_id WITH ROLLUP) rollUP)  as tb1

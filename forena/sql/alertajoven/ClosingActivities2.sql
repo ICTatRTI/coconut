@@ -33,7 +33,7 @@ FROM
         1 = 1
             AND field_activity_name_value REGEXP 
 case 
-when :exit_activity_name = 'all' then  '.*((Obtienen empleo o pasantía pagada - )|(Terminan capacitación técnica - )|(Obtienen documentación - )|(Graduados de EPC - )|(Obtienen empleo o pasantía pagada - )|(Reinsertados en la escuela - )|(Terminan Estrella Jóvenes - )|(Terminan QLS - )).*'
+when :exit_activity_name = 'all' then  '.*((Obtienen empleo o pasantía pagada - )|(Terminan capacitación técnica - )|(Obtienen documentación - )|(Graduados de EPC - )|(Obtienen empleo o pasantía pagada - )|(Reinsertados en la escuela - )|(Terminan Estrella Jóvenes - )|(Terminan QLS - )|(Terminan Red Juvenil -)).*'
 when :exit_activity_name = 'Terminan capacitación técnica - ' then '.*Terminan capacitación técnica - .*' 
 when :exit_activity_name = 'Obtienen documentación - ' then '.*Obtienen documentación - .*' 
 when :exit_activity_name = 'Graduados de EPC - ' then '.*Graduados de EPC - .*'
@@ -43,6 +43,7 @@ when :exit_activity_name = 'Terminan LVPE - ' then '.*Terminan LVPE - *'
 when :exit_activity_name = 'Terminan La Compañia - ' then '.*Terminan La Compañia - .*'
 when :exit_activity_name = 'Terminan Estrella Jóvenes - ' then '.*Terminan Estrella Jóvenes - .*'
 when :exit_activity_name = 'Terminan QLS - ' then '.*Terminan QLS - .*'
+when :exit_activity_name = 'Terminan Red Juvenil - ' then '.*Terminan Red Juvenil - .*'
 end
           
 --IF=:from_date

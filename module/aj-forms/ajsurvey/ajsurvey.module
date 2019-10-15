@@ -78,7 +78,7 @@ function ajsurvey_form($form, &$form_state) {
 	// Tab 1
 	$form['documentation'] = array(
     	'#type'  => 'fieldset',
-    	'#title' => t('Demográficos y Documentación (9 - 13A)'),
+    	'#title' => t('Demográficos y Documentación (9 - 13B)'),
     	'#collapsible' => TRUE,
     	'#collapsed' => true,
     	'#group' => 'group_tabs',
@@ -168,6 +168,11 @@ function ajsurvey_form($form, &$form_state) {
 	$YesNoOptions = array(
 		1 => t('Sí'),
 	    2 => t('No'),
+	);
+	
+	$TrueFalseOptions = array(
+	    1 => t('Verdadero'),
+	    2 => t('Falso'),
 	);
 
 	$YesNoOptionsRadios = array(
@@ -312,6 +317,33 @@ function ajsurvey_form($form, &$form_state) {
 		'#options' => drupal_map_assoc($YesNoOptions),
 		'#required' => true,
 		'#group' => 'documentation',
+	);
+	
+	$form['documentation']['13A'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('13.A. ¿Cuántos tienes?'),
+	    '#required' => false,
+	    '#maxlength' => 2,
+	    '#group' => 'documentation',
+	    '#states' => array(
+	        'visible' => array(
+	            'select[name="13"]' => array('value' => 'Sí'),
+	        ),
+	    )
+	);
+	
+	$pregnantOptions = array(
+	    t('Sí, estoy embaraza'),
+	    t('Sí, mi pareja está embarazada'),
+	    t('No'),
+	);
+	
+	$form['documentation']['13B'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.B. ¿Actualmente tú o tu pareja está embarazada?'),
+	    '#options' => drupal_map_assoc($pregnantOptions),
+	    '#required' => true,
+	    '#group' => 'documentation',
 	);
 
   $sexOptions = array(
@@ -2055,6 +2087,7 @@ $twentyfourOptions = array(
 			t('8 a 10'),
 			t('11 a 13'),
 			t('14 o más personas'),
+	        t('Prefiero no responder')
 	);
 	$form['sexual']['85'] = array(
 			'#type' => 'select',
@@ -2223,7 +2256,7 @@ $twentyfourOptions = array(
 	$form['sexual']['90_3'] = array(
 	    '#type' => 'select',
 	    '#title' => t('93. ¿Los métodos anticonceptivos hormonales (como las pastillas mensuales, de emergencia, inyección y el parche) previenen el embarazo?'),
-	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#options' => drupal_map_assoc($TrueFalseOptions),
 	    '#empty_option' => t('- Select -'),
 	    '#required' => true,
 	    '#group' => 'sexual',
@@ -2615,6 +2648,8 @@ function ajsurvey_form_submit($form, &$form_state) {
 			$form_state['values']['12'],
 	        $form_state['values']['12_1'],
 			$form_state['values']['13'],
+	        $form_state['values']['13A'],
+	        $form_state['values']['13B'],
     		$form_state['values']['dob1'],
     		$form_state['values']['sex1'],
     		$form_state['values']['samehouse1'],
@@ -2820,6 +2855,8 @@ function ajsurvey_form_submit($form, &$form_state) {
     $_12 = $form_state['values']['12'];
     $_12_1 = $form_state['values']['12_1'];
     $_13 = $form_state['values']['13'];
+    $_13A = $form_state['values']['13A'];
+    $_13B = $form_state['values']['13B'];
     $_13dob1 = $form_state['values']['dob1'];
     $_13sex1 = $form_state['values']['sex1'];
     $_13samehouse1 = $form_state['values']['samehouse1'];
@@ -2980,6 +3017,9 @@ function ajsurvey_form_submit($form, &$form_state) {
 	
  	// QUESTION 13A1 --------------------------------------------------------------
 	if($_13 === 'Sí') {
+	    if (empty($_13A)) {
+	      form_error($form['documentation']['13A'], t('13.A. ¿Cuántos tienes?: Campo requerido'));
+	    }
 		if ((int)($_13dob1['year']) < ((int)$currentYear - 12)) {
 			form_error($form['documentation']['13A1']['dob1'], t('13A Hijo 1. Año de nacimiento no válido'));
 		}
@@ -3413,7 +3453,9 @@ function _ajsurvey_insert_data(
     		$_11Otro,
 			$_12,
             $_12_1,
-			$_13,
+	 		$_13,
+            $_13A,
+            $_13B,
     		$_dob1,
     		$_sex1,
     		$_samehouse1,
@@ -3620,6 +3662,8 @@ function _ajsurvey_insert_data(
 		'12Cuálestuestadocivil' => $_12,
 	    '121Fuisteforzadoacasarteounirteaunapareja' => $_12_1,
 		'13Tieneshijos' => $_13,
+	    '13A' => $_13A,
+	    '13B' => $_13B,
 		'13AFecha1' => $child1_date_string,
 		'13Asexo1' => $_sex1,
 		'13AMismaCasa1' => $_samehouse1,

@@ -60,13 +60,15 @@ FROM
         1 = 1
             AND field_activity_name_value REGEXP 
 case 
-when :exit_activity_name = 'all' then  '.*((Terminan capacitación técnica -)|(Obtienen documentación -)|(Graduados de EPC -)|(Reinsertados en la escuela -)|(Terminan Estrella Jóvenes - )|(Terminan QLS - )).*'
+when :exit_activity_name = 'all' then  '.*((Terminan capacitación técnica -)|(Obtienen documentación -)|(Graduados de EPC -)|(Reinsertados en la escuela -)|(Terminan Estrella Jóvenes - )|(Terminan QLS - )|(Terminan Red Juvenil -)).*'
 when :exit_activity_name = 'Terminan capacitación técnica - ' then '.*Terminan capacitación técnica -.*' 
 when :exit_activity_name = 'Obtienen documentación - ' then '.*Obtienen documentación -.*' 
 when :exit_activity_name = 'Graduados de EPC - ' then '.*Graduados de EPC -.*'
 when :exit_activity_name = 'Reinsertados en la escuela - ' then '.*Reinsertados en la escuela -.*'
 when :exit_activity_name = 'Terminan Estrella Jóvenes - ' then '.*Terminan Estrella Jóvenes - .*'
 when :exit_activity_name = 'Terminan QLS - ' then '.*Terminan QLS - .*'
+when :exit_activity_name = 'Terminan Red Juvenil - ' then '.*Terminan Red Juvenil - .*'
+
 end
           
 --IF=:from_date

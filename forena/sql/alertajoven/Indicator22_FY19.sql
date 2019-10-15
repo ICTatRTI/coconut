@@ -77,12 +77,14 @@ AND (
 OR (4_2Esestetuprimerempleo = 'Sí'
     OR 14_Tienesunnegociopropio = 'Sí' 
     OR (8_Cuandoiniciasteelcursotecnicoyaestabas = 'Sí' AND 8_2Porqueconsideraqueesunmejorempleo in ('Mejor salario', 'Seguro médico', 'Mejor cobertura médica', 'Bonificaciones adicionales al salario', 'Pago de capacitaciones', 'Pago de horas extras y pago de licencias médicas'))
-    OR (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos',  'Mayores ingresos')))
+    OR (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos',  'Mayores ingresos', 'Mejor planificación', 'Mejor atención al cliente', 'Mayor variedad de productos o servicios ofrecidos', 'Mayor conocimiento de tu negocio')))
 -- Nuevo Emprendimiento
 OR 14_Tienesunnegociopropio = 'Sí'
 -- Emprendimiento Mejorado
-OR (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos',  'Mayores ingresos'))
- 
+OR (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos', 'Mayores ingresos', 'Mejor planificación', 'Mejor atención al cliente', 'Mayor variedad de productos o servicios ofrecidos', 'Mayor conocimiento de tu negocio') AND 14_Tienesunnegociopropio = 'Ya tenía un negocio')
+-- Emprendimiento EG 5.3
+OR (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio in ('Sí', 'Ya tenía un negocio')) 
+
 )
 GROUP BY UUID) uniqueRecords
 group by provider_id WITH ROLLUP) rollUP)  as tb1

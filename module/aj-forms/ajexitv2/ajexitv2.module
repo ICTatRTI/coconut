@@ -4101,6 +4101,7 @@ WHERE
         OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan La Compañía%'
         OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan Estrella Jóvenes%'
         OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan QLS%'
+        OR field_data_field_activity_name.field_activity_name_value LIKE 'Terminan Red Juvenil%'
     ) 
     AND uuid=:uuid",
 						array(

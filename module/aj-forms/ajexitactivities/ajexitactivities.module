@@ -81,6 +81,9 @@ function ajexitactivities_form($form, &$form_state) {
 			case 'Quantum Learning Estudiantes':
 			  $activityNamesOpt[$record->entity_id . '_8'] = t('Jóvenes que han completado QLS ' . $suffix);
 			  break;
+			case 'Redes Juveniles':
+			  $activityNamesOpt[$record->entity_id . '_9'] = t('Jóvenes que terminan Redes Juveniles ' . $suffix);
+			  break;
 			default:
 // 				watchdog('ajexitactivities', '$program_name ' . $record->field_programname_name_value);
 				
@@ -179,6 +182,8 @@ function ajexitactivities_form_submit($form, &$form_state) {
 		  break;
 		case 8:
 		  $activity_name_full = 'Terminan QLS - '.$activity_name_sufix;
+		case 9:
+		  $activity_name_full = 'Terminan Red Juvenil - '.$activity_name_sufix;  
 		  break;
 	}
 

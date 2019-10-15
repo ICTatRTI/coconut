@@ -71,7 +71,7 @@ and reg.provider_id in (:provider_id)
 --END
 
 AND (
-   (16_Siyateniasunnegocioconsiderasquedespuesdel = 'Sí' AND 17_Comohamejorado in ('Mejores ingresos',  'Mayores ingresos', 'Mejor planificación', 'Mejor atención al cliente', 'Mayor variedad de productos o servicios ofrecidos', 'Mayor conocimiento de tu negocio'))
+   (13_Hasrecibidounprestamoatravesdelproyecto = 'Sí' AND 14_Tienesunnegociopropio in ('Sí', 'Ya tenía un negocio')) 
 )
 GROUP BY UUID) uniqueRecords
 group by provider_id WITH ROLLUP) rollUP)  as tb1
