@@ -1,0 +1,294 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajbeneficiaryprofile_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajbeneficiaryprofile":
+			return '<p>' . t("Display information of the beneficiary") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajbeneficiaryprofile_menu() {
+	$items = array();
+
+	$items['ajbeneficiaryprofile'] = array(
+		'title' => 'Beneficiary Profile',
+		'description' => 'Displays all information of a particular beneficiary',
+		'page callback' => '_ajbeneficiaryprofile_page',
+    	'page arguments' => array('ajbeneficiaryprofile_form'),
+		'access arguments' => array('access ajbeneficiaryprofile content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+ /**
+  *  Page callback: Current users settings
+  *  @see current_users_menu()
+  */
+function ajbeneficiaryprofile_form($form, &$form_state) {
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+	$label = "Regresar al <a href='mis-beneficiarios'>Listado de Beneficiarios</a><br/><br/>";
+
+	$form['return_link'] = array(
+	  '#markup' => $label
+	);
+	
+
+	// Horizontal tabs container
+	$form['tabs'] = array(
+			'#type'     => 'horizontal_tabs',
+			'#attached' => array('library' => array(array('field_group', 'horizontal-tabs'))), // Converts fieldsets into tabs
+	);
+	
+	$form['registration_info'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Perfil'),
+			'#group' => 'tabs',
+	);
+	
+	$form['program_info'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Participación en programas'),
+			'#group' => 'tabs',
+	);
+	
+	$form['activity_info'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Historial de Actividades'),
+			'#group' => 'tabs',
+	);
+	
+	$beneficiaryInfo = _ajbeneficiaryprofile_getBeneficiaryInfo($uuid);
+	
+	$rows = array();
+	array_push($rows, array('<b>UUID:</b>', $beneficiaryInfo['uuid']));
+	array_push($rows, array('<b>Nombre:</b>', $beneficiaryInfo['nombre']));
+	array_push($rows, array('<b>Apellido:</b>', $beneficiaryInfo['apellido']));
+	array_push($rows, array('<b>Tipo:</b>', $beneficiaryInfo['Estecolateralparticipante'] == 'Sí' ? 'Indirecto' : 'Directo'));
+	
+	$form['registration_info']['registration_info_primary'] = array(
+			'#markup' => theme('table', array('header' => array('Datos Personales', ''), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 70%')))
+	);
+	
+	$rows = array();
+	array_push($rows, array('<b>Apodo:</b>', $beneficiaryInfo['apodo']));
+	array_push($rows, array('<b>Sexo:</b>', $beneficiaryInfo['sexo']));
+	array_push($rows, array('<b>Nacimiento:</b>', $beneficiaryInfo['DOB']));
+	array_push($rows, array('<b>Edad actual:</b>', $beneficiaryInfo['edadActual'] . ' años'));
+	array_push($rows, array('<b>Edad durante registro:</b>', $beneficiaryInfo['edadRegistrado'] . ' años'));
+	array_push($rows, array('<b>Fecha de Registro:</b>', $beneficiaryInfo['fecha']));
+	array_push($rows, array('<b>Calle-Número:</b>', $beneficiaryInfo['calleynumero']));
+	array_push($rows, array('<b>Barrio:</b>', $beneficiaryInfo['BarrioComunidad']));
+	array_push($rows, array('<b>Municipio:</b>', $beneficiaryInfo['municipio']));
+	array_push($rows, array('<b>Provincia:</b>', $beneficiaryInfo['provincia']));
+	array_push($rows, array('<b>Creado en el sistema:</b>', $beneficiaryInfo['createdAt']));
+	
+	$form['registration_info']['registration_info_sec_fieldset'] = array(
+			'#type' => 'fieldset',
+			'#title' => t('Mostrar datos adicionales'),
+			'#collapsible' => true,
+			'#collapsed' => true,
+			'#suffix' => '<br>',
+	);
+	
+	$form['registration_info']['registration_info_sec_fieldset']['registration_info_secundary'] = array(
+			'#markup' => theme('table', array('header' => array('Más datos personales', ''), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 70%')))
+	);
+	
+	$rows = array();
+	array_push($rows, array('<b>Registro:</b>', 'Sí'));
+	array_push($rows, array('<b>Encuesta de participante:</b>', _ajbeneficiaryprofile_beneficiaryHasSurvey($uuid) ? 'Sí' : 'No' ));
+	array_push($rows, array('<b>MARP:</b>', _ajbeneficiaryprofile_beneficiaryHasMARP($uuid) ? 'Sí' : 'No'));
+	array_push($rows, array('<b>Salida:</b>', _ajbeneficiaryprofile_beneficiaryHasExitSurvey($uuid) ? 'Sí' : 'No'));
+	array_push($rows, array('<b>Encuesta Laboral:</b>', _ajbeneficiaryprofile_beneficiaryHasLaborSurvey($uuid) ? 'Sí' : 'No'));
+	
+	$form['registration_info']['registration_completed_forms'] = array(
+			'#markup' => theme('table', array('header' => array('Formularios completados', ''), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 70%')))
+);
+	
+	$activities = _ajbeneficiaryprofile_getBeneficiaryActivities($uuid);
+	
+	$rows = array();
+	foreach ($activities as $activity) {
+		$rows[$activity->entity_id] = array(
+			'entity_id' => $activity->entity_id,
+			'program_name' => $activity->field_programname_name_value,
+		);
+	};
+	
+	$form['program_info']['programs'] = array(
+			'#markup' => theme('table', array(
+							'header' => array('ID de Programa','Nombre de Programa'),
+							'rows' => $rows,
+							'empty' => 'Este beneficiario no ha participado ningún programa',
+					'attributes' =>  array('style' => 'width: 70%'))));
+	
+	
+	$rows = array();
+	foreach ($activities as $activity) {
+		$rows[$activity->activity_id] = array(
+			'program_name' => $activity->field_programname_name_value,
+			'activity_name' => $activity->field_activity_name_value,
+			'activity_date' => substr($activity->field_activity_date_value, 0, 10),
+		);
+	}
+	
+	$form['activity_info']['activities'] = array(
+		'#markup' => theme('table', array(
+					'header' => array('Nombre de Programa','Nombre de Actividad', 'Fecha de actividad'), 
+					'rows' => $rows,
+					'empty' => 'Este beneficiario no ha participado ninguna actividad')));
+
+	return $form;
+}
+
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function ajbeneficiaryprofile_form_submit($form, &$form_state) {
+
+
+}
+
+ /**
+  * Implements the hook_permissions
+  */
+ function ajbeneficiaryprofile_permission() {
+	return array(
+		'access ajbeneficiaryprofile content' => array(
+				'title' => t('Access content for ajbeneficiaryprofile module'),
+				'description' => t('Control the access for the Beneficiary Profile'),
+		)
+	);
+ }
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajbeneficiaryprofile_page() {
+	return drupal_get_form('ajbeneficiaryprofile_form');
+}
+
+
+/**
+ * Get the beneficiary info
+ */
+function _ajbeneficiaryprofile_getBeneficiaryInfo($uuid) {
+
+	$query = db_select('aj_registration', 'reg');
+	$query->fields('reg', array('createdAt', 'nombre', 
+			'apellido', 'apodo', 'uuid', 'fecha', 'DOB', 
+			'calleynumero','BarrioComunidad', 'municipio', 'provincia', 
+			'sexo', 'Estecolateralparticipante'
+	));
+	$query->condition('uuid', $uuid);
+	$query->addExpression("DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), '%Y-%m-%d'), dob)), '%Y')+0", 'edadActual');
+	$query->addExpression("DATE_FORMAT(FROM_DAYS(DATEDIFF(fecha, dob)), '%Y')+0", 'edadRegistrado');
+	$query->range(0,1);
+
+	$result = $query->execute();
+	return $result->fetchAssoc();
+}
+
+/**
+ * Get the beneficiary's activities
+ */
+function _ajbeneficiaryprofile_getBeneficiaryActivities($uuid) {
+
+	$query = db_query(
+			'SELECT field_data_field_program_name.entity_id, activity_id, field_programname_name_value, field_activity_name_value, field_activity_date_value
+			FROM {aj_attendance} 
+		join {field_data_field_activity_name} on (activity_id = field_data_field_activity_name.entity_id) 
+		join {field_data_field_activity_date} on (activity_id = field_data_field_activity_date.entity_id)
+		join {field_data_field_activity_program} on (activity_id = field_data_field_activity_program.entity_id)
+		join {field_data_field_program_name} on (field_data_field_activity_program.field_activity_program_target_id = field_data_field_program_name.entity_id)
+		join {field_data_field_programname_name} on (field_data_field_programname_name.entity_id = field_data_field_program_name.field_program_name_target_id) 
+			WHERE uuid = :uuid
+			order by field_programname_name_value',
+			array(
+					':uuid' => $uuid
+			));
+	return $query->fetchAllAssoc('activity_id');
+}
+
+/**
+ * Checks if a given uuid has a survey
+ */
+function _ajbeneficiaryprofile_beneficiaryHasSurvey($uuid) {
+	
+	$query = db_query(
+			'SELECT uuid
+			from aj_survey
+			WHERE uuid = :uuid',
+			array(
+					':uuid' => $uuid
+			));
+	
+	return ($query->rowCount() > 0);
+}
+
+/**
+ * Checks if a given uuid has a MARP form
+ */
+function _ajbeneficiaryprofile_beneficiaryHasMARP($uuid) {
+
+	$query = db_query(
+			'SELECT uuid
+			from aj_marp
+			WHERE uuid = :uuid',
+			array(
+					':uuid' => $uuid
+			));
+	
+	return ($query->rowCount() > 0);
+}
+
+/**
+ * Checks if a given uuid has an Exit Survey
+ */
+function _ajbeneficiaryprofile_beneficiaryHasExitSurvey($uuid) {
+
+	$query = db_query(
+			'SELECT uuid
+			from aj_exit	
+			WHERE uuid = :uuid',
+			array(
+					':uuid' => $uuid
+			));
+	
+	return ($query->rowCount() > 0);
+}
+
+/**
+ * Checks if a given uuid has a Labor Survey
+ */
+function _ajbeneficiaryprofile_beneficiaryHasLaborSurvey($uuid) {
+
+	$query = db_query(
+			'SELECT uuid
+			from aj_labor
+			WHERE uuid = :uuid',
+			array(
+					':uuid' => $uuid
+			));
+	
+	return ($query->rowCount() > 0);
+}

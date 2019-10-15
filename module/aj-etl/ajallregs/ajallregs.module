@@ -1,0 +1,979 @@
+<?php
+/**
+ * Created by IntelliJ IDEA.
+ * User: vbakalov
+ * Date: 2/20/2015
+ * Time: 3:56 PM
+ */
+
+
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
+/**
+ * Cron job is creating the queue cron job.
+ *
+ */
+function ajallregs_cron() {
+
+    $queue = DrupalQueue::get('ajallregs');
+    $queue->createItem("arg1");
+}
+
+/**
+ * Cron jobs info.
+ *
+ * @return array
+ */
+function ajallregs_cron_queue_info()
+{
+
+    $queues = array();
+
+    //cron is run at 2:00am
+    //if(date('G')==2)
+    //{
+    $queues['ajallregs'] = array(
+        'worker callback' => 'load_all_regs_worker',
+        'time' => 300, // time in seconds, this is the duration that the job will be CALLED, e.g.
+        // after it finish it will be called again until the time is up.
+    );
+    //}
+
+    return $queues;
+}
+
+
+/**
+ * The queue job worker. Query registration from couchDB descending and load them into mySQL database.
+ *
+ */
+function load_all_regs_worker()
+{
+    ajetllog_log("ajallregs", "MESSAGE", "PROCESSING STARTED");
+    global $base_url;
+
+    ajallregs_setModuleVariables();
+
+    /********** FETCH COMPLETE REGISTRATIONS ***************************/
+    $req_url = 'http://localhost:5984/coconut/_design/coconut/_view/resultsByQuestionAndCompleteWithCollateral?startkey=%22Participant%20Registration-es%3Atrue%3Az%22&endkey=%22Participant%20Registration-es%3Atrue%22&descending=true&include_docs=false';
+
+    // process complete regs
+    $numComplete = ajallregs_processRegs($req_url);
+
+    ajetllog_log("ajallregs", "MESSAGE", "Complete regs processed".$numComplete);
+
+    /********** FETCH INCOMPLETE REGISTRATIONS ***************************/
+    $req_url = 'http://localhost:5984/coconut/_design/coconut/_view/resultsByQuestionAndCompleteWithCollateral?startkey=%22Participant%20Registration-es%3Afalse%3Az%22&endkey=%22Participant%20Registration-es%3Afals%22&descending=true&include_docs=false';
+
+    // process incomplete regs
+    $numIncomplete = ajallregs_processRegs($req_url);
+
+    ajetllog_log("ajallregs", "MESSAGE", "Incomplete regs processed".$numIncomplete);
+
+    ajetllog_log("ajallregs", "MESSAGE", "Total regs processed".$numIncomplete);
+    ajallregs_deleteModuleVariables();
+
+}
+
+/**
+ * Process registrations.
+ *
+ * @param $url
+ */
+function ajallregs_processRegs($req_url){
+    //TBD Uncomment when deploying to prod, the $base_url is not write when deploying on Windows because it has /drupal in the link
+    //$req_url = $base_url.':5984/coconut/_design/coconut/_view/resultsByQuestionAndComplete?startkey=%22Participant%20Registration-es%3Atrue%3Az%22&endkey=%22Participant%20Registration-es%3Atrue%22&descending=true&include_docs=false';
+
+
+    // prepare the request options
+    $req_options = array(
+        'method' => 'GET',
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ));
+
+    // query couchdb data
+    $couch_response = drupal_http_request( $req_url, $req_options );
+
+    // decode to json objects
+    $rows = drupal_json_decode( $couch_response->data)['rows'];
+
+    $size = sizeof($rows);
+
+
+    ajetllog_log("ajallregs", "MESSAGE", "******Rows fetched:".$size);
+
+    $i = 0;
+
+    foreach ( $rows as $one_row ){
+        list($type, $isCompleted, $lastModified1,$lastModified2, $lastModified3, $lastModified4) = explode(":", $one_row['key']);
+
+        // lastModified is in format as 2014-08-11T13:50:41-03:00 so need to re-create
+        $lastModified = $lastModified1.':'.$lastModified2.':'.$lastModified3.':'.$lastModified4;
+
+        // ignore if the date is in the future - not sure how that happened
+        if (!ajallregs_isDateInFuture($lastModified)) {
+            // check if the record with the same id and last modified date already exist
+            $record = ajallregs_ajallregs_getRegistrationByIdAndModifiedDate($one_row['id'], $lastModified);
+
+            if ($record != null) {
+                ajetllog_log("ajallregs", "MESSAGE", "Found same exact record and stopped loading registrations for document is" . $one_row['id']);
+                break;
+            }
+        }
+
+
+        ajallregs_loadRegistration($one_row['id'], $lastModified);
+        $i++;
+
+        //if ($i === 10)
+        //  break;
+
+    }
+
+    return $i;
+}
+
+
+/**
+ *
+ * Checks if the date is in the future.
+ *
+ * @param $dt
+ */
+function ajallregs_isDateInFuture($dt)
+{
+    // remove the last 6 chars, e.g. the couchDB time zone
+    $dt = substr($dt, 0, 10);
+
+
+    if (strtotime($dt) > strtotime('today'))
+        return true;
+
+
+    return false;
+}
+
+
+/**
+ * Implement hook_enable()
+ */
+function ajallregs_enable() {
+    //Check if table exists, if not install the schema.
+    /* if(db_table_exists('aj_all_regs') == FALSE) {
+         drupal_install_schema('ajallregs');
+     }*/
+
+
+}
+
+
+/**
+ * Opens the document by Id and returns the JSON object.
+ *
+ * @param $id
+ */
+function ajallregs_OpenRegById($id){
+    // TBD: changed hard coded localhost link
+    $req_url = 'http://localhost:5984/coconut/'.$id;
+
+    $req_options = array(
+        'method' => 'GET',
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ));
+
+    $couch_response = drupal_http_request( $req_url, $req_options );
+    $doc = drupal_json_decode( $couch_response->data);
+
+
+    return $doc;
+
+}
+
+/**
+ * Delete module variables.
+ */
+function ajallregs_deleteModuleVariables(){
+    variable_del("ajAllRegsColumns");
+
+}
+
+/**
+ *
+ * Use variable_set() to set module global variables.
+ *
+ *
+ */
+function ajallregs_setModuleVariables()
+{
+    // retrieve aj-survey table columns
+    $ajAllRegsColumns = drupal_schema_fields_sql("aj_all_regs");
+    // set the columns as variable
+    variable_set("ajAllRegsColumns", $ajAllRegsColumns);
+}
+
+/**
+ * Generates the first insert query e.g. .(col1, col2, col3...). It's driven by the aj_all_regs table columns.
+ *
+ * @param $doc
+ *
+ */
+function ajallregs_genInsertQueryPart1($doc){
+    $query = "";
+    $ajAllRegsColumns = variable_get("ajAllRegsColumns");
+
+
+
+    foreach ($ajAllRegsColumns as $col){
+        if ($col === "id" || $col === "changed")
+            continue;
+
+        $query = $query.$col.", ";
+
+
+    }
+
+    // clean the last ","
+    $len = strlen($query);
+    $query =substr($query, 0, $len-2);
+
+    return $query;
+
+}
+
+
+/**
+ * Generates the values() insert statement. Returns ERROR if data are invalid.
+ *
+ * @param $doc
+ *
+ */
+function ajallregs_genInsertQueryPart2($doc){
+    $query = "";
+    $key = "";
+    $val = "";
+
+    $ajAllRegsColumns = variable_get("ajAllRegsColumns");
+
+    foreach ($ajAllRegsColumns as $col) {
+        // skip these
+        if ($col === "id" || $col === "changed")
+            continue;
+
+        $key = $col;
+
+        if ($key === "created"){
+            $val = " NOW() ";
+            $query = $query . $val . " ";
+            
+        } else if ($key === "Estecolateralparticipante"){
+                	ajetllog_error("ajetlregs", "MESSAGE Collateral", "Estecolateralparticipante key turn", $key, $doc['provider_id']);
+        	if (array_key_exists($key, $doc)) {
+        		$val = $doc[$key];
+            		ajetllog_error("ajetlregs", "MESSAGE Collateral", "KEY FOUND", $key." value: ".$val, $doc['provider_id']);
+        		switch($val) {
+        			case "Directo":
+        				$val = "No";
+            				ajetllog_error("ajetlregs", "MESSAGE Collateral", "KEY Directo", $key." new value: ".$val, $doc['provider_id']);
+        				break;
+        			case "Indirecto";
+        				$val = "Sí";
+        					ajetllog_error("ajallregs", "MESSAGE Collateral", "CASE Indirecto", $key." new value: ".$val, $doc['provider_id']);
+        				break;
+        			default:
+            			    ajetllog_error("ajallregs", "MESSAGE Collateral", "CASE Default", $key." same value: ".$val, $doc['provider_id']);
+        				// Leave $val as is
+        		}
+        	} else
+        		$val = "";
+        	$query = $query . "'" . $val . "' ";
+        	
+        } else {
+            if (array_key_exists($key, $doc)) {
+                $val = $doc[$key];
+                $pos = stripos($val, "'");
+                 if ($pos > 0)
+                    $val = str_replace("'", "\'", $val);
+            } else
+                $val = "";
+            $query = $query . "'" . $val . "' ";
+        }
+
+        $query = $query.",";
+
+
+    }
+
+    // clean the last ","
+    $len = strlen($query);
+    $query =substr($query, 0, $len-1);
+
+    return $query;
+
+}
+
+
+
+/**
+ * Constructs data in format UUID, provider_id, Nombre, Apellido, Barrio/Comunidad, Mes, Dia, Ano
+ * @param $doc
+ *
+ */
+function ajallregs_constructCSVData($doc, $mm,  $dd, $yyyy){
+    $dataCSV = $doc['Fecha'].','.$doc['uuid'].','.$doc['Nombre'].','.$doc['Apellido'].','
+        .$doc['BarrioComunidad'].','.$doc['Mes'].','.$doc['Día'].','.$doc['Año'];
+
+
+    //$dataCSV = $doc['uuid'].','.$doc['provider_id'].','.$doc['Nombre'].','.$doc['Apellido'].','
+    //  .$doc['BarrioComunidad'].','.$mm.','.$dd.','.$yyyy;
+
+    return $dataCSV;
+
+}
+
+/**
+ * Inserts data into aj_etlsurvey table.
+ *
+ * @param $id
+ * @param $lastModifiedDate
+ */
+function ajallregs_insertRegistration($doc){
+
+    $q1 = ajallregs_genInsertQueryPart1($doc);
+    $q2 = ajallregs_genInsertQueryPart2($doc);
+
+    // check for error
+    if ($q2 === "ERROR")
+        return "ERROR";
+
+    $query = "INSERT INTO {aj_all_regs} (".$q1.") VALUES(".$q2.")";
+
+
+
+    try {
+        $result = db_query($query);
+    }catch(Exception $e){
+        ajetllog_error("ajallregs", "MySQL ERROR", "MySQL error.",$doc['_id'].':'.$doc['Fecha'] , $doc['provider_id']);
+        ajetllog_error("ajallregs", "MySQL ERROR", "MySQL error.", $e->getMessage(), "");
+    }
+
+}
+
+
+
+
+/**
+ * Query aj_all_regs table for record by _id and lastModifiedAt date.
+ *
+ * @param $_id
+ * @param $lastModifiedAt
+ * @return null if record does not exist
+ *         the record if exist
+ */
+function ajallregs_ajallregs_getRegistrationByIdAndModifiedDate($_id, $lastModifiedAt)
+{
+    $retRecord = null;
+
+    $sqlLastModifiedAt = ajallregs_couchDateTime2Mysql($lastModifiedAt);
+
+    $result = db_query("SELECT t.id FROM {aj_all_regs} t WHERE t._id = :_id AND t.lastModifiedAt=".$sqlLastModifiedAt, array(':_id' => $_id));
+
+
+    if ($result == null) {
+        return null;
+    }
+
+    foreach ($result as $record) {
+        $retRecord = $record;
+        ajetllog_log("ajallregs", "MESSAGE", 'Found existing doc for doc id='.$record->id);
+        break;
+    }
+
+    return $retRecord;
+
+}
+
+/**
+ * Query aj_all_regs table by _id.
+ *
+ * @param $_id
+ * @return null if record not found
+ *         the record if found
+ */
+function ajallregs_getRegistrationById($_id)
+{
+    $retRecord = null;
+
+
+    $result = db_query('SELECT t.id, t._id, t.lastModifiedAt FROM {aj_all_regs} t WHERE t._id = :_id', array(':_id' => $_id));
+
+    var_dump($result);
+
+    if ($result == null) {
+        return null;
+    }
+
+    foreach ($result as $record) {
+        $retRecord = $record;
+        ajetllog_log("ajallregs", "MESSAGE", 'Found existing doc for doc id='.$record->id);
+        break;
+    }
+
+    return $retRecord;
+
+
+}
+
+
+/**
+ * Query aj_all_regs table by _id and lastModifiedAt DIFFERENT then the input $lastModifiedAt.
+ *
+ * @param $_id
+ * @param $lastModifiedAt
+ * @return null if record is not found
+ *         the record if found
+ */
+function ajallregs_getRegistrationByIdDifferentDate($_id, $lastModifiedAt)
+{
+    $retRecord = null;
+    $sqlLastModifiedAt = ajallregs_couchDateTime2Mysql($lastModifiedAt);
+    $result = db_query("SELECT t.id FROM {aj_all_regs} t WHERE t._id = :_id AND t.lastModifiedAt<>".$sqlLastModifiedAt, array(':_id' => $_id));
+
+
+
+    if ($result == null) {
+        return null;
+    }
+
+    foreach ($result as $record) {
+        $retRecord = $record;
+        ajetllog_log("ajallregs", "MESSAGE", 'Found existing doc for doc id='.$record->id);
+        break;
+    }
+
+    return $retRecord;
+
+
+
+}
+
+/**
+ * First it checks for same _id AND different lastModifiedAt date. If record found
+ * deletes the record before inserting the modified document. If record is not found
+ * insert the data into the aj_all_regs table.
+ *
+ * @param $id
+ * @param $lastModifiedDate
+ */
+function ajallregs_loadRegistration($_id, $lastModifiedAt){
+
+    // check if the record with the same id but different modified date already exist
+    $record = ajallregs_getRegistrationByIdDifferentDate($_id, $lastModifiedAt);
+
+    // TBD: Maybe need to update the existing document, not delete before inserting. However because
+    // of the fast approaching deadline do this for now.
+
+    // record has been changed so delete the old record before inserting
+    if ($record != null) {
+        db_query("DELETE FROM {aj_all_regs} WHERE _id='".$_id."'");
+    }
+
+    // fetch the document from couch db
+    $doc = ajallregs_OpenRegById($_id);
+
+
+    // insert the record
+    ajallregs_insertRegistration($doc);
+
+}
+
+/**
+ * Checks if Fecha is correct.
+ *
+ * @param $doc
+ * @param $id
+ * @return bool
+ */
+function ajallregs_isDocumentValid($doc, $id){
+
+    // Check if Fetcha is valid, there is occasions where Fetcha is 20104-04-26
+    $len = strlen($doc['Fecha']);
+    if ($len != 10){
+        ajetllog_log("ajallregs", "ERROR", 'Fecha is not correct for doc id='.$id);
+        return false;
+    }
+
+    return true;
+}
+
+
+
+
+/**
+ *
+ * Removes the last 6 characters (the timezone) from couchDB date.
+ *
+ * Example: converts 2013-11-29T09:40:10-03:00 to 2013-11-29T09:40:10 and
+ * adds STR_TO_DATE so the final string will be STR_TO_DATE('2013-11-29T09:40:10', '%Y-%m-%dT%H:%i:%S').
+ *
+ */
+function ajallregs_couchDateTime2Mysql($dt){
+
+    //'2014-11-12T14:11:48-04:00
+
+//'2014-07-09T21:42:49+12:00\'', ''
+
+    //2014-05-29T13:43:40-04:00
+
+
+    //2014-09-22T22:16:59-03:00
+
+    // remove the last 6 chars, e.g. the couchDB time zone
+    $len = strlen($dt);
+    $newdt = substr($dt, 0, $len - 6);
+
+    // try again
+    $len = strlen($newdt);
+
+    if ($len > 19){
+        $newdt = substr($newdt, 0, $len - 6);
+    }
+
+    return " STR_TO_DATE('".$newdt."', '%Y-%m-%dT%H:%i:%S')";
+}
+
+
+/**
+ *
+
+ * Example: converts 23/10/2013 to STR_TO_DATE('23/10/2013', '%d/%m/%Y').
+ *
+ * Handle different date formats. The input date might be in format:
+ * 23-07-2014
+ * 2014-07-23
+ * 23/04/2014
+ *
+ */
+function ajallregs_couchDate2Mysql($dt){
+    if ($dt == null )
+        return " null ";
+
+
+
+
+    // date is in dd/mm/YYYY format
+    $pos = stripos($dt, "/");
+
+    // check the year
+
+    if ($pos > 0)
+        return " STR_TO_DATE('".$dt."', '%d/%m/%Y')";
+
+    $pos = stripos($dt, "-");
+
+    if ($pos > 0) {
+
+        if (strlen($dt) < 8)
+            return " null ";
+
+        $pos1 = stripos($dt, "-");
+
+        if ($pos1 === 2) { // date is in format 23/05/2014
+            return " STR_TO_DATE('" . $dt . "', '%d-%m-%Y')";
+        }else {
+
+            $first5 = substr($dt, 0, 5);
+            $last4 = substr($first5, 1);
+
+            // it means the year has one additional character on front, e.g. 22014, 32014, etc..
+            if ($last4 === "2014" || strstr($dt, '20104') || strstr($dt, '20147') || strstr($dt, '20014')){
+                $endDt = substr($dt, 5);
+                $dt = '2014'.$endDt;
+            }else if ($last4 === "2013" || strstr($dt, '20103') || strstr($dt, '20137') || strstr($dt, '20013')){
+                $endDt = substr($dt, 5);
+                $dt = '2013'.$endDt;
+            }
+
+
+            return " STR_TO_DATE('" . $dt . "', '%Y-%m-%d')";
+        }
+    }else{
+        //assume date is in 14032014 format
+        return " STR_TO_DATE('" . $dt . "', '%d%m%Y')";
+    }
+}
+
+
+
+
+
+function ajallregs_processYear($yyyy){
+    // check for "-" and "/"
+    if (stripos($yyyy, "/") > 0 || stripos($yyyy, "-") > 0) {
+        //make some wrong year
+
+        return '999999';
+    }
+    //0013-11-14
+
+    // check if starts with '00'
+
+    if (ajallregs_startsWith($yyyy, '0')){
+        $yyyy = 'XYZ'.$yyyy;
+    }
+
+    if (strlen($yyyy) == 4) {
+
+        return ($yyyy);
+    }
+
+
+    // it means the year has one additional character on front, e.g. 22014, 32014, etc..
+    if (stripos($yyyy, "3") > 0){
+        return "2013";
+    }else if (stripos($yyyy, "4") > 0){
+        return "2014";
+    }else if (stripos($yyyy, "5") > 0) {
+        return "2015";
+    } else if (stripos($yyyy, "6") > 0) {
+        return "2016";
+    }
+
+    if (strlen($yyyy) != 4)
+        $yyyy = "NOTVALID";
+
+    return $yyyy;
+
+}
+
+
+
+function ajallregs_trim($val){
+    $patterns = array();
+    $patterns[0] = '/\//';
+    $patterns[1] = '/\(/';
+    $patterns[2] = '/\)/';
+    $patterns[3] = '/\\\/';
+    $patterns[4] = '/\%/';
+    $patterns[5] = '/ /';
+    $patterns[6] = '/-/';
+
+
+    $replacements = array();
+    $replacements[0] = '';
+    $replacements[1] = '';
+    $replacements[2] = '';
+    $replacements[3] = '';
+    $replacements[4] = '';
+    $replacements[5] = '';
+    $replacements[6] = '';
+
+    return preg_replace($patterns, $replacements, $val);
+}
+
+function ajallregs_startsWith($haystack, $needle)
+{
+    $length = strlen($needle);
+    return (substr($haystack, 0, $length) === $needle);
+}
+
+
+
+    /**
+     * Converts month in Spanish to number. For example febrero will be converted to 02
+     * @param m $
+     *
+     */
+    function ajallregs_month2number($m){
+
+        $m = strtolower($m);
+
+        //enero, febrero, marzo, abril, mayo,junio, julio, agosto, septiembre, octubre, noviembre, diciembre
+
+        if (ajallregs_startsWith($m, "e"))
+            return "01";
+        else if (ajallregs_startsWith($m, "f"))
+            return "02";
+        else if (ajallregs_startsWith($m, "mar"))
+            return "03";
+        else if (ajallregs_startsWith($m, "ab"))
+            return "04";
+        else if (ajallregs_startsWith($m, "m"))
+            return "05";
+        else if (ajallregs_startsWith($m, "jun"))
+            return "06";
+        else if (ajallregs_startsWith($m, "jul"))
+            return "07";
+        else if (ajallregs_startsWith($m, "a"))
+            return "08";
+        else if (ajallregs_startsWith($m, "s"))
+            return "09";
+        else if (ajallregs_startsWith($m, "o"))
+            return "10";
+        else if (ajallregs_startsWith($m, "n"))
+            return "11";
+        else if (ajallregs_startsWith($m, "d"))
+            return "12";
+
+
+        return '00';
+
+    }
+
+
+/**
+ *
+
+ * Example: converts 23/10/2013 to STR_TO_DATE('23/10/2013', '%d/%m/%Y').
+ *
+ * Handle different date formats. The input date might be in format:
+ * 0002-05-25
+ * 23-05-2013
+ * 19-2-14
+ * 0014-02-20
+ * 23-07-2014
+ * 2014-07-23
+ * 23/04/2014
+ *
+ */
+function ajallregs_processFecha($doc){
+    $dt = $doc['Fecha'];
+
+
+
+    if ($dt == null ) {
+        //$dataCSV = ajallregs_constructCSVData($doc, "", "", "");
+        //ajetllog_error("ajallregs", "INVALID DATE", "Fecha is missing.", $dataCSV, $doc['provider_id']);
+        return " null ";
+    }
+
+    // first search if date is in format 2014-11-12T12:45:58-04:0 and strip all after "T"
+    $pos = stripos($dt, 'T');
+    if ( $pos > 0){
+        $dt = substr($dt, 0, $pos -1);
+    }
+
+    // date is in dd/mm/YYYY format
+    $pos = stripos($dt, "/");
+
+    if ($pos > 0) {
+        list($dd, $mm, $yyyy) = explode("/", $dt);
+
+
+        $yyyy = ajallregs_processYear($yyyy);
+
+        // check if date is valid
+        if (!checkdate((int)$mm, (int)$dd, (int)$yyyy)){
+
+            // check for 2014-06-26
+            list($yyyy, $mm, $dd ) = explode("/", $dt);
+            $yyyy = ajallregs_processYear($yyyy);
+
+            if (!checkdate((int)$mm, (int)$dd, (int)$yyyy)) {
+                $dataCSV = ajallregs_constructCSVData($doc, $mm, $dd, $yyyy);
+                ajetllog_error("ajallregs", "INVALID DATE", "Fecha  no es válida ", $dataCSV, $doc['provider_id']);
+                return " null ";
+            }
+
+            $dt = $yyyy.'/'.$mm.'/'.$dd;
+            return " STR_TO_DATE('" . $dt . "', '%Y/%m/%d')";
+        }
+
+        $dt = $dd.'/'.$mm.'/'.$yyyy;
+        return " STR_TO_DATE('" . $dt . "', '%d/%m/%Y')";
+    }
+
+    $pos = stripos($dt, "-");
+
+    if ($pos > 0) {
+
+
+        //0013-11-14
+
+        //2014-11-0013
+
+        list($dd, $mm, $yyyy) = explode("-", $dt);
+        $yyyy = ajallregs_processYear($yyyy);
+
+        // check if date is valid
+        if (!checkdate((int)$mm, (int)$dd, (int)$yyyy) || strlen($dd) > 2 ){
+
+            // check for 2014-06-26
+            list($yyyy, $mm, $dd ) = explode("-", $dt);
+            $yyyy = ajallregs_processYear($yyyy);
+
+            if (!checkdate((int)$mm, (int)$dd, (int)$yyyy)) {
+                $dataCSV = ajallregs_constructCSVData($doc, $mm, $dd, $yyyy);
+                ajetllog_error("ajallregs", "INVALID DATE", "Fecha  no es válida", $dataCSV, $doc['provider_id']);
+                return " null ";
+            }
+
+            $dt = $yyyy.'-'.$mm.'-'.$dd;
+            return " STR_TO_DATE('" . $dt . "', '%Y-%m-%d')";
+        }
+
+        $dt = $yyyy.'-'.$mm.'-'.$dd;
+        return " STR_TO_DATE('" . $dt . "', '%Y-%m-%d')";
+    }else{
+        //assume date is in 14032014 format
+        $dd = substr($dt,0,2);
+        $mm = substr($dt,2,2);
+        $yyyy = substr($dt,4);
+
+        $yyyy = ajallregs_processYear($yyyy);
+
+        // check if date is valid
+        if (!checkdate((int)$mm, (int)$dd, (int)$yyyy)){
+            $dataCSV = ajallregs_constructCSVData($doc, $mm, $dd, $yyyy);
+            ajetllog_error("ajallregs", "INVALID DATE", "Fecha  no es válida", $dataCSV, $doc['provider_id']);
+            return " null ";
+        }
+
+
+        return " STR_TO_DATE('" . $dt . "', '%d%m%Y') ";
+    }
+
+
+
+    $dataCSV = ajallregs_constructCSVData($doc, "", "", "");
+    ajetllog_error("ajallregs", "INVALID DATE", "Fecha  no es válida", $dataCSV, $doc['provider_id']);
+
+    return " null ";
+
+
+}
+    /**
+     * Validates the DOB and returns ERROR if date is missing or not valid.
+     * It's also log error message and CSV data for providers to fix.
+     *
+     * NOTE: Changed 02/13/2015 to load registrations with null DOB and trim DOB month and check for 31.
+     *
+     * @param $doc
+     *
+     */
+    function ajallregs_processDOB($doc){
+
+        // process collateral
+        // TBD: first check if the index exist
+        if (array_key_exists('Estecolateralparticipante', $doc) && ($doc['Estecolateralparticipante'] === 'Sí' || $doc['Estecolateralparticipante'] === 'Indirecto')){
+            // first check if exist
+            if ($doc['Año'] == null || $doc['Mes'] == null || $doc['Día'] == null )
+                return " null ";
+
+            // check if collateral and the dob is 1/1/1990
+            if ($doc['Año'] === '1990' && $doc['Mes'] === '1' && $doc['Mes'] === '1' && $doc['Día'] == '1'){
+                //ajetllog_error("ajallregs", "DEBUG", "FOUND COLLATERALL ", null, null);
+                return " null ";
+            }
+        }
+
+        if ($doc['Día'] == '0')
+            return ' null ';
+
+        // still load regs with no DOB
+        if ($doc['Año'] == null || $doc['Mes'] == null || $doc['Día'] == null )
+            return " null ";
+
+        // construct DOB from Dia-Mes-Ano
+        $yyyy =  $doc['Año'];
+
+        $yyyy =  ajallregs_processYear($yyyy);
+
+        // check for 98, 99, etc.. 2 digits for the year
+        if (strlen($yyyy) == 2) {
+            $yyyy = '19'.$yyyy;
+        }
+
+        if (strlen($yyyy) != 4) {
+            $dataCSV = ajallregs_constructCSVData($doc, $doc['Mes'], $doc['Día'], $yyyy);
+            ajetllog_error("ajallregs", "INVALID DATE", "Año de nacimiento está mal.", $dataCSV, $doc['provider_id']);
+            return "ERROR";
+        }
+
+        // remove whitespaces
+        $mm = ajallregs_trim($doc['Mes']);
+
+        // remove "0" if starts with 0
+        $mm = ltrim($mm, '0');
+
+        // check if month is missing
+        // TBD: need to log the error and not insert this document
+        if ($mm == null || $mm == ''){
+            $dataCSV = ajallregs_constructCSVData($doc, $mm, $doc['Día'], $yyyy);
+            ajetllog_error("ajallregs", "INVALID DATE", "Meses falta.", $dataCSV, $doc['provider_id']);
+            return " null ";
+        }
+
+
+
+        if (!is_numeric($mm)) {
+            $mm = ajallregs_month2number($mm);
+        }
+
+        $mm = (int)$mm;
+
+        if ( $mm > 12)
+            $mm = 1;
+
+        // cases where $mm = "9" instead of "09"
+        if (strlen($mm) < 2) {
+            $mm = "0".$mm;
+        }
+
+        // trim white spaces
+        $dd = ajallregs_trim($doc['Día']);
+
+        // trim leading zeros
+        $dd =ltrim($dd, '0');
+
+        if ($dd == '31' && ( $mm == '04' || $mm == '06' || $mm == '09' || $mm == '11')){
+            $dd='30';
+        }
+
+        if (($dd == '29' || $dd == '30' || $dd == '31') &&  $mm == '02'){
+            $dd='28';
+        }
+
+        // check if date is missing
+        if ($dd == null || $dd == ''){
+            $dataCSV = ajallregs_constructCSVData($doc, $mm, $dd, $yyyy);
+            ajetllog_error("ajallregs", "INVALID DATE", "Fecha de falta.", $dataCSV, $doc['provider_id']);
+            return " ";
+        }
+
+
+
+
+
+        // convert day to number and check if valid date
+        $dd = (int)$dd;
+
+
+
+
+
+        // check if date is valid
+        if (!checkdate((int)$mm, (int)$dd, (int)$doc['Año'])){
+            $dataCSV = ajallregs_constructCSVData($doc, $mm, $dd, $yyyy);
+            ajetllog_error("ajallregs", "INVALID DATE", "Fecha de nacimiento no es válida - check mes, la fecha o el año", $dataCSV, $doc['provider_id']);
+            return " null ";
+        }
+
+        if (strlen($dd) < 2) {
+            $dd = "0".$dd;
+        }
+
+
+        $dob = $dd.'/'.$mm.'/'.$yyyy;
+
+
+        return " STR_TO_DATE('" . $dob . "', '%d/%m/%Y')";
+
+
+
+
+    }
+
+

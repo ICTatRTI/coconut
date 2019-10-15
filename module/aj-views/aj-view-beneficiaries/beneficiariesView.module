@@ -1,0 +1,302 @@
+<?php
+/**
+ * Implements hook_views_api().
+ */
+function beneficiariesView_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'beneficiariesView'),
+  );
+}
+
+
+function beneficiariesView_views_default_views() {
+
+$view = new view();
+$view->name = 'mis-beneficiariosv2';
+$view->description = 'Beneficiaries view';
+$view->tag = ' default';
+$view->base_table = 'aj_registration';
+$view->human_name = 'mis-beneficiariosv2';
+$view->core = 7;
+$view->api_version = '3.0';
+$view->disabled = FALSE; /* Edit this to true to make a default view disabled initially */
+
+/* Display: Master */
+$handler = $view->new_display('default', 'Master', 'default');
+$handler->display->display_options['title'] = 'Lista de Beneficiarios v2';
+$handler->display->display_options['use_ajax'] = TRUE;
+$handler->display->display_options['use_more_always'] = FALSE;
+$handler->display->display_options['access']['type'] = 'role';
+$handler->display->display_options['access']['role'] = array(
+  2 => '2',
+);
+$handler->display->display_options['cache']['type'] = 'none';
+$handler->display->display_options['query']['type'] = 'views_query';
+$handler->display->display_options['query']['options']['distinct'] = TRUE;
+$handler->display->display_options['query']['options']['pure_distinct'] = TRUE;
+$handler->display->display_options['exposed_form']['type'] = 'basic';
+$handler->display->display_options['exposed_form']['options']['submit_button'] = 'Search';
+$handler->display->display_options['exposed_form']['options']['autosubmit_hide'] = FALSE;
+$handler->display->display_options['pager']['type'] = 'full';
+$handler->display->display_options['pager']['options']['items_per_page'] = '10';
+$handler->display->display_options['pager']['options']['offset'] = '0';
+$handler->display->display_options['pager']['options']['id'] = '0';
+$handler->display->display_options['pager']['options']['quantity'] = '9';
+$handler->display->display_options['pager']['options']['expose']['items_per_page'] = TRUE;
+$handler->display->display_options['pager']['options']['expose']['items_per_page_options_all'] = TRUE;
+$handler->display->display_options['style_plugin'] = 'table';
+$handler->display->display_options['style_options']['columns'] = array(
+  'counter' => 'counter',
+  'uuid' => 'uuid',
+  'nombre' => 'nombre',
+  'apellido' => 'apellido',
+  'apodo' => 'apodo',
+  'DOB' => 'DOB',
+  'Estecolateralparticipante' => 'Estecolateralparticipante',
+  'field_agency_name' => 'field_agency_name',
+  'provider_id' => 'provider_id',
+  'nothing' => 'nothing',
+);
+$handler->display->display_options['style_options']['default'] = '-1';
+$handler->display->display_options['style_options']['info'] = array(
+  'counter' => array(
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'uuid' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'nombre' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'apellido' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'apodo' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'DOB' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'Estecolateralparticipante' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'field_agency_name' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'provider_id' => array(
+    'sortable' => 1,
+    'default_sort_order' => 'asc',
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+  'nothing' => array(
+    'align' => '',
+    'separator' => '',
+    'empty_column' => 0,
+  ),
+);
+$handler->display->display_options['style_options']['sticky'] = TRUE;
+/* Footer: Global: Result summary */
+$handler->display->display_options['footer']['result']['id'] = 'result';
+$handler->display->display_options['footer']['result']['table'] = 'views';
+$handler->display->display_options['footer']['result']['field'] = 'result';
+$handler->display->display_options['footer']['result']['empty'] = TRUE;
+$handler->display->display_options['footer']['result']['content'] = 'Mostrando @start - @end de @total';
+/* No results behavior: Global: Text area */
+$handler->display->display_options['empty']['area']['id'] = 'area';
+$handler->display->display_options['empty']['area']['table'] = 'views';
+$handler->display->display_options['empty']['area']['field'] = 'area';
+$handler->display->display_options['empty']['area']['empty'] = TRUE;
+$handler->display->display_options['empty']['area']['content'] = 'No hay resultados que mostrar';
+$handler->display->display_options['empty']['area']['format'] = 'plain_text';
+/* Relationship: Registration: aj_registration relationship */
+$handler->display->display_options['relationships']['provider_id']['id'] = 'provider_id';
+$handler->display->display_options['relationships']['provider_id']['table'] = 'aj_registration';
+$handler->display->display_options['relationships']['provider_id']['field'] = 'provider_id';
+$handler->display->display_options['relationships']['provider_id']['label'] = 'Provider_Name Relationship';
+/* Relationship: Entity Reference: Referencing entity */
+$handler->display->display_options['relationships']['reverse_field_user_provider_user']['id'] = 'reverse_field_user_provider_user';
+$handler->display->display_options['relationships']['reverse_field_user_provider_user']['table'] = 'eck_provider';
+$handler->display->display_options['relationships']['reverse_field_user_provider_user']['field'] = 'reverse_field_user_provider_user';
+$handler->display->display_options['relationships']['reverse_field_user_provider_user']['relationship'] = 'provider_id';
+$handler->display->display_options['relationships']['reverse_field_user_provider_user']['required'] = TRUE;
+/* Field: Registration: UUID */
+$handler->display->display_options['fields']['uuid']['id'] = 'uuid';
+$handler->display->display_options['fields']['uuid']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['uuid']['field'] = 'uuid';
+/* Field: Registration: Nombre */
+$handler->display->display_options['fields']['nombre']['id'] = 'nombre';
+$handler->display->display_options['fields']['nombre']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['nombre']['field'] = 'nombre';
+/* Field: Registration: Apellido */
+$handler->display->display_options['fields']['apellido']['id'] = 'apellido';
+$handler->display->display_options['fields']['apellido']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['apellido']['field'] = 'apellido';
+/* Field: Registration: Apodo */
+$handler->display->display_options['fields']['apodo']['id'] = 'apodo';
+$handler->display->display_options['fields']['apodo']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['apodo']['field'] = 'apodo';
+/* Field: Registration: Fecha de Nacimiento */
+$handler->display->display_options['fields']['DOB']['id'] = 'DOB';
+$handler->display->display_options['fields']['DOB']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['DOB']['field'] = 'DOB';
+/* Field: Registration: ¿Indirecto? */
+$handler->display->display_options['fields']['Estecolateralparticipante']['id'] = 'Estecolateralparticipante';
+$handler->display->display_options['fields']['Estecolateralparticipante']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['Estecolateralparticipante']['field'] = 'Estecolateralparticipante';
+/* Field: Provider: Nombre */
+$handler->display->display_options['fields']['field_agency_name']['id'] = 'field_agency_name';
+$handler->display->display_options['fields']['field_agency_name']['table'] = 'field_data_field_agency_name';
+$handler->display->display_options['fields']['field_agency_name']['field'] = 'field_agency_name';
+$handler->display->display_options['fields']['field_agency_name']['relationship'] = 'provider_id';
+$handler->display->display_options['fields']['field_agency_name']['label'] = 'Organización';
+/* Field: Registration: Esto es provider_id */
+$handler->display->display_options['fields']['provider_id']['id'] = 'provider_id';
+$handler->display->display_options['fields']['provider_id']['table'] = 'aj_registration';
+$handler->display->display_options['fields']['provider_id']['field'] = 'provider_id';
+$handler->display->display_options['fields']['provider_id']['label'] = 'ID_Organización';
+$handler->display->display_options['fields']['provider_id']['exclude'] = TRUE;
+/* Field: Global: Custom text */
+$handler->display->display_options['fields']['nothing']['id'] = 'nothing';
+$handler->display->display_options['fields']['nothing']['table'] = 'views';
+$handler->display->display_options['fields']['nothing']['field'] = 'nothing';
+$handler->display->display_options['fields']['nothing']['label'] = 'Acción';
+$handler->display->display_options['fields']['nothing']['alter']['text'] = '<ul>
+  <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#new/result/Participant Survey-es/isActions=true&user_name=%1&provider_name=[field_agency_name]&isDataEntry=false&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">Encuesta</a></li>
+  <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#new/result/Exit Survey-es/isActions=true&user_name=%1&provider_name=[field_agency_name]&isDataEntry=false&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">Salida</a></li>
+  <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#marp/MARP-es/isActions=true&user_name=%1&provider_name=[field_agency_name]&isDataEntry=false&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">MARP</a></li>
+	</ul>';
+/* Sort criterion: Registration: Apellido */
+$handler->display->display_options['sorts']['apellido']['id'] = 'apellido';
+$handler->display->display_options['sorts']['apellido']['table'] = 'aj_registration';
+$handler->display->display_options['sorts']['apellido']['field'] = 'apellido';
+$handler->display->display_options['sorts']['apellido']['expose']['label'] = 'Apellido';
+/* Sort criterion: Registration: Nombre */
+$handler->display->display_options['sorts']['nombre']['id'] = 'nombre';
+$handler->display->display_options['sorts']['nombre']['table'] = 'aj_registration';
+$handler->display->display_options['sorts']['nombre']['field'] = 'nombre';
+$handler->display->display_options['sorts']['nombre']['expose']['label'] = 'Nombre';
+/* Sort criterion: Registration: Apodo */
+$handler->display->display_options['sorts']['apodo']['id'] = 'apodo';
+$handler->display->display_options['sorts']['apodo']['table'] = 'aj_registration';
+$handler->display->display_options['sorts']['apodo']['field'] = 'apodo';
+$handler->display->display_options['sorts']['apodo']['expose']['label'] = 'Apodo';
+/* Contextual filter: User: Uid */
+$handler->display->display_options['arguments']['uid']['id'] = 'uid';
+$handler->display->display_options['arguments']['uid']['table'] = 'users';
+$handler->display->display_options['arguments']['uid']['field'] = 'uid';
+$handler->display->display_options['arguments']['uid']['relationship'] = 'reverse_field_user_provider_user';
+$handler->display->display_options['arguments']['uid']['default_action'] = 'default';
+$handler->display->display_options['arguments']['uid']['default_argument_type'] = 'current_user';
+$handler->display->display_options['arguments']['uid']['summary']['number_of_records'] = '0';
+$handler->display->display_options['arguments']['uid']['summary']['format'] = 'default_summary';
+$handler->display->display_options['arguments']['uid']['summary_options']['items_per_page'] = '25';
+/* Filter criterion: Global: Combine fields filter */
+$handler->display->display_options['filters']['combine']['id'] = 'combine';
+$handler->display->display_options['filters']['combine']['table'] = 'views';
+$handler->display->display_options['filters']['combine']['field'] = 'combine';
+$handler->display->display_options['filters']['combine']['operator'] = 'contains';
+$handler->display->display_options['filters']['combine']['exposed'] = TRUE;
+$handler->display->display_options['filters']['combine']['expose']['operator_id'] = 'combine_op';
+$handler->display->display_options['filters']['combine']['expose']['label'] = 'Buscar por Nombre, Apellido, Apodo o UUID';
+$handler->display->display_options['filters']['combine']['expose']['operator'] = 'combine_op';
+$handler->display->display_options['filters']['combine']['expose']['identifier'] = 'combine';
+$handler->display->display_options['filters']['combine']['expose']['remember'] = TRUE;
+$handler->display->display_options['filters']['combine']['expose']['remember_roles'] = array(
+  2 => '2',
+  1 => 0,
+  3 => 0,
+  6 => 0,
+  7 => 0,
+  4 => 0,
+  8 => 0,
+  9 => 0,
+  1000 => 0,
+);
+$handler->display->display_options['filters']['combine']['group_info']['label'] = 'Combine fields filter';
+$handler->display->display_options['filters']['combine']['group_info']['identifier'] = 'combine';
+$handler->display->display_options['filters']['combine']['group_info']['remember'] = FALSE;
+$handler->display->display_options['filters']['combine']['group_info']['group_items'] = array(
+  1 => array(),
+  2 => array(),
+  3 => array(),
+);
+$handler->display->display_options['filters']['combine']['fields'] = array(
+  'uuid' => 'uuid',
+  'nombre' => 'nombre',
+  'apellido' => 'apellido',
+  'apodo' => 'apodo',
+);
+/* Filter criterion: Registration: ¿Indirecto? */
+$handler->display->display_options['filters']['Estecolateralparticipante']['id'] = 'Estecolateralparticipante';
+$handler->display->display_options['filters']['Estecolateralparticipante']['table'] = 'aj_registration';
+$handler->display->display_options['filters']['Estecolateralparticipante']['field'] = 'Estecolateralparticipante';
+$handler->display->display_options['filters']['Estecolateralparticipante']['operator'] = '!=';
+$handler->display->display_options['filters']['Estecolateralparticipante']['value'] = 'Sí';
+
+/* Display: Lista de Beneficiarios */
+$handler = $view->new_display('page', 'Lista de Beneficiariosv2', 'page');
+$handler->display->display_options['path'] = 'mis-beneficiariosv2';
+$handler->display->display_options['menu']['type'] = 'normal';
+$handler->display->display_options['menu']['title'] = 'Lista de Beneficiarios v2';
+
+
+
+
+  $views[$view->name] = $view;
+  return $views;
+}
+
+function beneficiariesView_views_default_views_alter(&$views) {
+
+	// Leaving this here in case we need it in the future
+
+// 	global $user;
+// 	$userName = $user->name;
+// 	$isDataEntry = (in_array('Data Entry', $user->roles))? 'true':'false';
+
+// 	$actionLinks = '<ul>
+//   <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#new/result/Participant Survey-es/isActions=true&user_name='.$userName.'&provider_name=[field_agency_name]&isDataEntry='.$isDataEntry.'&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">Encuesta</a></li>
+//   <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#new/result/Exit Survey-es/isActions=true&user_name='.$userName.'&provider_name=[field_agency_name]&isDataEntry='.$isDataEntry.'&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">Salida</a></li>
+//   <li><a target="_blank" href="http://54.204.20.212:5984/coconut/_design/coconut/index.html#marp/MARP-es/isActions=true&user_name='.$userName.'&provider_name=[field_agency_name]&isDataEntry='.$isDataEntry.'&quid=Participant Registration-es&reportType=results&uuid=[uuid]&provider_id=[provider_id]&provider_name=[field_agency_name]">MARP</a></li>
+// 	</ul>';
+
+// 	var_dump($views['mis-beneficiarios']->display['default']->display_options['fields']['nothing']['alter']['text']);
+// 	$views['mis-beneficiarios']->display['default']->display_options['fields']['nothing']['alter']['text'] = $actionLinks;
+
+}
+
+
+

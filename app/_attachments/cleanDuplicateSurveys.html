@@ -15,7 +15,7 @@
 
     <script type="text/javascript" src="js-libraries/jquery-1.7.2.min.js"></script>
     <script type="text/javascript" src="js-libraries/jquery.couch.js"></script>
-
+	<script type="text/javascript" src="js-libraries/moment.min.js"></script>
 
 
 
@@ -75,6 +75,9 @@
                                             data.question = "Participant Survey-es-DUPLICATE";
                                             data.quid = "Participant Registration-es-DUPLICATE";
                                             data.collection = "result-DUPLICATE";
+
+											// update so the etl program insert this record into Drupal db
+                                            data.lastModifiedAt = moment(new Date()).format(undefined);
 
                                             // save the document
                                             db.saveDoc(data);

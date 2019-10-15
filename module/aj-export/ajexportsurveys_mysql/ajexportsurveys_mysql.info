@@ -1,0 +1,3 @@
+name = AJ Export Survey Data from Mysql to CSV
+description = Extracts surveys from Mysql and generates CSV files.
+core = 7.x

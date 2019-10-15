@@ -1,0 +1,208 @@
+id,module,created,category,message,data,provider_id
+440366,ajetlregs,2015-10-12 12:44:26,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440367,ajetlregs,2015-10-12 12:44:26,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440372,ajetlregs,2015-10-12 12:44:26,MESSAGE,PROCESSING STARTED,,
+440373,ajetlregs,2015-10-12 12:44:53,MESSAGE,******Rows fetched:132651,,
+440374,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440375,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440376,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440377,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440378,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440379,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440380,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440381,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440382,ajetlregs,2015-10-12 12:44:53,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440383,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440384,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440385,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440386,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440387,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440388,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440389,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440390,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440391,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440392,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440393,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440394,ajetlregs,2015-10-12 12:44:54,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440450,ajetlregs,2015-10-12 12:46:14,INVALID DATE,Año de nacimiento está mal.,"2015-04-10,5HHDCVC8T,ODIL,RAMIREZ,ENRIQUILLO,02,12,01",11
+440469,ajetlregs,2015-10-12 12:46:55,INVALID DATE,Año de nacimiento está mal.,"2014-10-03,R501KCTZ=,YANIRA,AMPARO,NO IDENTIFICADO,1,1,1",11
+440475,ajetlregs,2015-10-12 12:47:00,INVALID DATE,Año de nacimiento está mal.,"2014-05-22,7GKN52DMP,DANIRDA,MORENO,HERRERA,11,9,01",11
+440476,ajetlregs,2015-10-12 12:47:00,INVALID DATE,Año de nacimiento está mal.,"2014-05-22,3WPP33QEM,ESMAILIN,MORILLO,LIBERTADOR DE HERRERA,12,4,01",11
+440677,ajetlregs,2015-10-12 12:50:44,INVALID DATE,Año de nacimiento está mal.,"2015-04-10,5HHDCVC8T,ODIL,RAMIREZ,ENRIQUILLO,02,12,01",11
+440708,ajetlregs,2015-10-12 13:01:09,INVALID DATE,Año de nacimiento está mal.,"2014-10-03,R501KCTZ=,YANIRA,AMPARO,NO IDENTIFICADO,1,1,1",11
+440715,ajetlregs,2015-10-12 13:01:28,INVALID DATE,Año de nacimiento está mal.,"2014-05-22,7GKN52DMP,DANIRDA,MORENO,HERRERA,11,9,01",11
+440716,ajetlregs,2015-10-12 13:01:28,INVALID DATE,Año de nacimiento está mal.,"2014-05-22,3WPP33QEM,ESMAILIN,MORILLO,LIBERTADOR DE HERRERA,12,4,01",11
+440482,ajetlregs,2015-10-12 12:47:22,INVALID DATE,Año de nacimiento está mal.,"2013-09-12,8G3VJ28XY,Prueba 2,Prueba 2,Prueba 2,1,1,1",12
+440722,ajetlregs,2015-10-12 13:02:53,INVALID DATE,Año de nacimiento está mal.,"2013-09-12,8G3VJ28XY,Prueba 2,Prueba 2,Prueba 2,1,1,1",12
+440447,ajetlregs,2015-10-12 12:45:36,INVALID DATE,Año de nacimiento está mal.,"2015-07-23,QRGQDYMC3,KAREN ,PEÑA,EL CAFÉ,1,1,19900",14
+440615,ajetlregs,2015-10-12 12:49:47,INVALID DATE,Año de nacimiento está mal.,"2015-07-23,QRGQDYMC3,KAREN ,PEÑA,EL CAFÉ,1,1,19900",14
+440442,ajetlregs,2015-10-12 12:45:29,INVALID DATE,Año de nacimiento está mal.,"2015-08-21,1ZT9K622H,VIVIANA ,MORA,CENTRO CIUDAD,01,01,01",17
+440443,ajetlregs,2015-10-12 12:45:30,INVALID DATE,Año de nacimiento está mal.,"2015-08-19,PZQTN3N7N,Yormi,Gomez,Centro ciudad,01,01,01",17
+440444,ajetlregs,2015-10-12 12:45:31,INVALID DATE,Año de nacimiento está mal.,"2015-08-18,M0WAPTYJ0,Julio Luis ,Jimenez,Playa Dorada,01,01,01",17
+440445,ajetlregs,2015-10-12 12:45:31,INVALID DATE,Año de nacimiento está mal.,"2015-08-17,8RAM2GW5~,Flerida,Tavarez,Centro ciudad,01,01,01",17
+440467,ajetlregs,2015-10-12 12:46:54,INVALID DATE,Año de nacimiento está mal.,"2014-12-01,882D92Z85,CLARIBEL,ALMONTE P,NO IDENTIFICADO,01,01,01",17
+440468,ajetlregs,2015-10-12 12:46:54,INVALID DATE,Año de nacimiento está mal.,"2014-12-10,QSB8D094B,ALEXANDRA,VARGA,NO IDENTIFICADO,01,01,01",17
+440602,ajetlregs,2015-10-12 12:49:36,INVALID DATE,Año de nacimiento está mal.,"2015-08-21,1ZT9K622H,VIVIANA ,MORA,CENTRO CIUDAD,01,01,01",17
+440608,ajetlregs,2015-10-12 12:49:37,INVALID DATE,Año de nacimiento está mal.,"2015-08-19,PZQTN3N7N,Yormi,Gomez,Centro ciudad,01,01,01",17
+440609,ajetlregs,2015-10-12 12:49:39,INVALID DATE,Año de nacimiento está mal.,"2015-08-18,M0WAPTYJ0,Julio Luis ,Jimenez,Playa Dorada,01,01,01",17
+440610,ajetlregs,2015-10-12 12:49:40,INVALID DATE,Año de nacimiento está mal.,"2015-08-17,8RAM2GW5~,Flerida,Tavarez,Centro ciudad,01,01,01",17
+440706,ajetlregs,2015-10-12 13:01:04,INVALID DATE,Año de nacimiento está mal.,"2014-12-01,882D92Z85,CLARIBEL,ALMONTE P,NO IDENTIFICADO,01,01,01",17
+440707,ajetlregs,2015-10-12 13:01:04,INVALID DATE,Año de nacimiento está mal.,"2014-12-10,QSB8D094B,ALEXANDRA,VARGA,NO IDENTIFICADO,01,01,01",17
+440478,ajetlregs,2015-10-12 12:47:17,INVALID DATE,Año de nacimiento está mal.,"2013-11-05,AWGM63QG1,Antonny,Odaly,El Brisal,06,03,00",23
+440479,ajetlregs,2015-10-12 12:47:17,INVALID DATE,Año de nacimiento está mal.,"2013-11-05,S2QSKYHJG,Jairo ,De los Santos,El brisal,12,03,00",23
+440480,ajetlregs,2015-10-12 12:47:17,INVALID DATE,Año de nacimiento está mal.,"2013-12-05,RT4EBESE0,Yeruis B.,De la Cruz,El Brisal,09,17,01",23
+440481,ajetlregs,2015-10-12 12:47:17,INVALID DATE,Año de nacimiento está mal.,"2014-12-05,Z3SZMX9MC,Iguel,Castro,El Brisal,11,03,00",23
+440718,ajetlregs,2015-10-12 13:02:33,INVALID DATE,Año de nacimiento está mal.,"2013-11-05,AWGM63QG1,Antonny,Odaly,El Brisal,06,03,00",23
+440719,ajetlregs,2015-10-12 13:02:33,INVALID DATE,Año de nacimiento está mal.,"2013-11-05,S2QSKYHJG,Jairo ,De los Santos,El brisal,12,03,00",23
+440720,ajetlregs,2015-10-12 13:02:33,INVALID DATE,Año de nacimiento está mal.,"2013-12-05,RT4EBESE0,Yeruis B.,De la Cruz,El Brisal,09,17,01",23
+440721,ajetlregs,2015-10-12 13:02:33,INVALID DATE,Año de nacimiento está mal.,"2014-12-05,Z3SZMX9MC,Iguel,Castro,El Brisal,11,03,00",23
+440425,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ARZS5B9SC,Rafael A,Gonzales Mejia,no identificado,1,1,1",24
+440426,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ZH1N30BG2,Sihra,Blanco,no identificado,1,1,1",24
+440427,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,B3YBKJEXG,Miguel ,german,no identificado,1,1,1",24
+440429,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,XH78N49J~,Keily,Vargas,no identificado,1,1,1",24
+440430,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,9RC6CXHR0,Soledad,Rodriguez,no identificado,1,1,1",24
+440431,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ZYV26YGNQ,Carmen Dilia,Inoa Perez,no tiene,1,1,1",24
+440432,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,YHKGP4JXV,Carmen Dilia,Inoa perez,no identificado,1,1,1",24
+440433,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,9NZM8GYT~,Ana A,Betances,no identificado,1,1,1",24
+440434,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,6FAA16J9D,Ana Darila,piyeda,no identificado,1,1,1",24
+440435,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-02-05,WWJ87HZY1,Yamily ,H Andujar,no identificado,1,1,1",24
+440436,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,CXWMV8E8A,Miladys,Ramirez,no identificado,1,1,1",24
+440437,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,1N4J3VT1P,Teanny ,De los santos,no identificado,1,1,1",24
+440438,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,AAQPDMGVC,Dominga,amadiz,no identificado,1,1,1",24
+440439,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,YBFVRJAA*,margarita,ariza,no identificado,1,1,1",24
+440567,ajetlregs,2015-10-12 12:49:20,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ARZS5B9SC,Rafael A,Gonzales Mejia,no identificado,1,1,1",24
+440568,ajetlregs,2015-10-12 12:49:20,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ZH1N30BG2,Sihra,Blanco,no identificado,1,1,1",24
+440569,ajetlregs,2015-10-12 12:49:20,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,B3YBKJEXG,Miguel ,german,no identificado,1,1,1",24
+440572,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,XH78N49J~,Keily,Vargas,no identificado,1,1,1",24
+440573,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,9RC6CXHR0,Soledad,Rodriguez,no identificado,1,1,1",24
+440574,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,ZYV26YGNQ,Carmen Dilia,Inoa Perez,no tiene,1,1,1",24
+440575,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,YHKGP4JXV,Carmen Dilia,Inoa perez,no identificado,1,1,1",24
+440576,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,9NZM8GYT~,Ana A,Betances,no identificado,1,1,1",24
+440577,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,6FAA16J9D,Ana Darila,piyeda,no identificado,1,1,1",24
+440578,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-02-05,WWJ87HZY1,Yamily ,H Andujar,no identificado,1,1,1",24
+440451,ajetlregs,2015-10-12 12:46:15,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,27
+440452,ajetlregs,2015-10-12 12:46:15,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: No,27
+440454,ajetlregs,2015-10-12 12:46:15,MySQL ERROR,MySQL error.,81e9584e9613cadbe129756015667535:2015-04-29,27
+440455,ajetlregs,2015-10-12 12:46:15,MySQL ERROR,MySQL error.,"SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '809-273-2009' ,'No' ,'Sí' ,'Sí' ,'Sí' ,'No' ,'M' )' at line 1",
+440456,ajetlregs,2015-10-12 12:46:25,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,21
+440457,ajetlregs,2015-10-12 12:46:25,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Sí,21
+440459,ajetlregs,2015-10-12 12:46:25,MySQL ERROR,MySQL error.,cbd3a58eb4fc0ae7b08f7125dbf321e5:2013-12-05,21
+440460,ajetlregs,2015-10-12 12:46:25,MySQL ERROR,MySQL error.,"SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '8496650751' ,'true' ,'' ,'07' ,'10' ,'SAN FELIPE DE PUERTO PLATA' ,'geldy barrie' at line 1",
+440579,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,CXWMV8E8A,Miladys,Ramirez,no identificado,1,1,1",24
+440580,ajetlregs,2015-10-12 12:49:22,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,1N4J3VT1P,Teanny ,De los santos,no identificado,1,1,1",24
+440581,ajetlregs,2015-10-12 12:49:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,AAQPDMGVC,Dominga,amadiz,no identificado,1,1,1",24
+440582,ajetlregs,2015-10-12 12:49:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-05,YBFVRJAA*,margarita,ariza,no identificado,1,1,1",24
+440420,ajetlregs,2015-10-12 12:45:15,INVALID DATE,Año de nacimiento está mal.,"2015-09-13,W75DB3MEB,gloria magdalena,castillo,LA CALETA,02,13,92",27
+440428,ajetlregs,2015-10-12 12:45:23,INVALID DATE,Año de nacimiento está mal.,"2015-08-22,5A4BW88Q*,Gregorina,Fuentes,LA CALETA,01,01,01",27
+440440,ajetlregs,2015-10-12 12:45:24,INVALID DATE,Año de nacimiento está mal.,"2015-09-01,RMCBJGBNR,Yamileisi,Merendez,Valiente,07,15,19999",27
+440446,ajetlregs,2015-10-12 12:45:33,INVALID DATE,Año de nacimiento está mal.,"2015-07-27,HGDYV0EBH,Eveline,JosephN,LA CALETA,01,01,01",27
+440461,ajetlregs,2015-10-12 12:46:28,INVALID DATE,Año de nacimiento está mal.,"2015-02-12,7Y8CNMDY6,BRENI,YUNIOR,VALIENTE,01,01,01",27
+440462,ajetlregs,2015-10-12 12:46:28,INVALID DATE,Año de nacimiento está mal.,"2015-02-12,B8R2CNYX6,JEREMY,CABRERA MIRANDA,LA CALETA,01,01,01",27
+440463,ajetlregs,2015-10-12 12:46:30,INVALID DATE,Año de nacimiento está mal.,"2014-10-10,3SY63AB2V,ISABEL,SANTANA,LOS TANQUECITOS,01,01,01",27
+440464,ajetlregs,2015-10-12 12:46:30,INVALID DATE,Año de nacimiento está mal.,"2014-10-10,X27683XH6,FIDELINA,SANTANA,VALIENTE,01,01,01",27
+440544,ajetlregs,2015-10-12 12:49:06,INVALID DATE,Año de nacimiento está mal.,"2015-09-13,W75DB3MEB,gloria magdalena,castillo,LA CALETA,02,13,92",27
+440571,ajetlregs,2015-10-12 12:49:21,INVALID DATE,Año de nacimiento está mal.,"2015-08-22,5A4BW88Q*,Gregorina,Fuentes,LA CALETA,01,01,01",27
+440583,ajetlregs,2015-10-12 12:49:23,INVALID DATE,Año de nacimiento está mal.,"2015-09-01,RMCBJGBNR,Yamileisi,Merendez,Valiente,07,15,19999",27
+440612,ajetlregs,2015-10-12 12:49:44,INVALID DATE,Año de nacimiento está mal.,"2015-07-27,HGDYV0EBH,Eveline,JosephN,LA CALETA,01,01,01",27
+440688,ajetlregs,2015-10-12 12:51:52,INVALID DATE,Año de nacimiento está mal.,"2015-02-12,7Y8CNMDY6,BRENI,YUNIOR,VALIENTE,01,01,01",27
+440689,ajetlregs,2015-10-12 12:51:52,INVALID DATE,Año de nacimiento está mal.,"2015-02-12,B8R2CNYX6,JEREMY,CABRERA MIRANDA,LA CALETA,01,01,01",27
+440690,ajetlregs,2015-10-12 12:52:05,INVALID DATE,Año de nacimiento está mal.,"2014-10-10,3SY63AB2V,ISABEL,SANTANA,LOS TANQUECITOS,01,01,01",27
+440691,ajetlregs,2015-10-12 12:52:05,INVALID DATE,Año de nacimiento está mal.,"2014-10-10,X27683XH6,FIDELINA,SANTANA,VALIENTE,01,01,01",27
+440399,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2014-04-28,3M3T1N8FG,Los Angeles,No especificado,MENDOZA ,01,01,91",28
+440507,ajetlregs,2015-10-12 12:48:53,INVALID DATE,Año de nacimiento está mal.,"2014-04-28,3M3T1N8FG,Los Angeles,No especificado,MENDOZA ,01,01,91",28
+440483,ajetlregs,2015-10-12 12:47:56,MESSAGE,Document processed87,,
+440484,ajetlregs,2015-10-12 12:47:57,MESSAGE,PROCESSING STARTED,,
+440487,ajetlregs,2015-10-12 12:48:35,MESSAGE,******Rows fetched:132653,,
+440488,ajetlregs,2015-10-12 12:48:35,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440489,ajetlregs,2015-10-12 12:48:35,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440490,ajetlregs,2015-10-12 12:48:35,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440491,ajetlregs,2015-10-12 12:48:39,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,15
+440492,ajetlregs,2015-10-12 12:48:39,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Directo,15
+440493,ajetlregs,2015-10-12 12:48:39,MESSAGE Collateral,KEY Directo,Estecolateralparticipante new value: No,15
+440421,ajetlregs,2015-10-12 12:45:16,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,K8PZZNTXF,Bautista,Rodriguez,LA YAGUITA DE PASTOR,01,01,01",38
+440422,ajetlregs,2015-10-12 12:45:16,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,JSDM4ZKP0,Valentina,Perez,LA YAGUITA DE PASTOR,01,01,01",38
+440423,ajetlregs,2015-10-12 12:45:16,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,277EH5QJT,Yaneli,Diaz,LA YAGUITA DE PASTOR,01,01,01",38
+440424,ajetlregs,2015-10-12 12:45:16,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,XJR88YWE7,Zeneida,Infante,LA YAGUITA DE PASTOR,01,01,01",38
+440448,ajetlregs,2015-10-12 12:45:41,INVALID DATE,Año de nacimiento está mal.,"2015-05-28,171NZSF99,Ramon,Peña,CIENFUEGOS,1,1,1",38
+440449,ajetlregs,2015-10-12 12:45:41,INVALID DATE,Año de nacimiento está mal.,"2015-05-28,463FPBFTQ,Carmen G,Santos,CIENFUEGOS,1,1,1",38
+440548,ajetlregs,2015-10-12 12:49:08,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,K8PZZNTXF,Bautista,Rodriguez,LA YAGUITA DE PASTOR,01,01,01",38
+440549,ajetlregs,2015-10-12 12:49:08,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,JSDM4ZKP0,Valentina,Perez,LA YAGUITA DE PASTOR,01,01,01",38
+440551,ajetlregs,2015-10-12 12:49:09,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,277EH5QJT,Yaneli,Diaz,LA YAGUITA DE PASTOR,01,01,01",38
+440553,ajetlregs,2015-10-12 12:49:10,INVALID DATE,Año de nacimiento está mal.,"2015-09-09,XJR88YWE7,Zeneida,Infante,LA YAGUITA DE PASTOR,01,01,01",38
+440634,ajetlregs,2015-10-12 12:49:57,INVALID DATE,Año de nacimiento está mal.,"2015-05-28,171NZSF99,Ramon,Peña,CIENFUEGOS,1,1,1",38
+440635,ajetlregs,2015-10-12 12:49:57,INVALID DATE,Año de nacimiento está mal.,"2015-05-28,463FPBFTQ,Carmen G,Santos,CIENFUEGOS,1,1,1",38
+440473,ajetlregs,2015-10-12 12:46:57,INVALID DATE,Año de nacimiento está mal.,"2014-02-28,9DB3ENT0J,JEIMY ,SANTA CARRASCO,LOTES Y SERVICIOS,4,1,1",4
+440477,ajetlregs,2015-10-12 12:47:07,INVALID DATE,Año de nacimiento está mal.,"2014-10-14,0KCWAYP4V,BERENICE,JIMENEZ,GUARICANO,04,18,20",4
+440712,ajetlregs,2015-10-12 13:01:16,INVALID DATE,Año de nacimiento está mal.,"2014-02-28,9DB3ENT0J,JEIMY ,SANTA CARRASCO,LOTES Y SERVICIOS,4,1,1",4
+440717,ajetlregs,2015-10-12 13:01:53,INVALID DATE,Año de nacimiento está mal.,"2014-10-14,0KCWAYP4V,BERENICE,JIMENEZ,GUARICANO,04,18,20",4
+440396,ajetlregs,2015-10-12 12:45:02,INVALID DATE,Año de nacimiento está mal.,"2015-09-30,XEDTXDV2J,JUANA MARIA,FORTUNA,LOS ALCARRIZOS PROGRESO #2,6,13,89",41
+440498,ajetlregs,2015-10-12 12:48:49,INVALID DATE,Año de nacimiento está mal.,"2015-09-30,XEDTXDV2J,JUANA MARIA,FORTUNA,LOS ALCARRIZOS PROGRESO #2,6,13,89",41
+440397,ajetlregs,2015-10-12 12:45:04,INVALID DATE,Año de nacimiento está mal.,"2015-07-23,1M9AACS4B,RAMON ,GUERRA ,NO IDENTIFICADO ,1,1,1",42
+440398,ajetlregs,2015-10-12 12:45:04,INVALID DATE,Año de nacimiento está mal.,"2015-07-21,4JXJP4DNC,GLORIA ,ARIAS ,NO IDENTIFICADO ,1,1,1",42
+440400,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,QM3C4G51V,LUIS MANUEL ,ROJAS ,NO IDENTIFICADO,1,1,1",42
+440401,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,YSR0W9Q07,LUZ DIVINA ,GUZMAN ,NO IDENTIFICADO,1,1,1",42
+440402,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,XZSYY3JH3,SANDRA ,RAMIREZ ,NO IDENTIFICADO,1,1,1",42
+440403,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,4MHJHY5NU,FRANCIS ,GUERRERO ,NO IDENTIFICADO,1,1,1",42
+440404,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,C5KD96134,FELIZ,JUAN,NO IDENTIFICADO,1,1,1",42
+440405,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,GW1TMN5NZ,FREDDY,CASTILLO,NO IDENTIFICADO,1,1,1",42
+440406,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,0K5QS73E4,SANDRA ,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440407,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,0K5QS73E4,SANDRA ,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440408,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,C5KD96134,FELIZ,JUAN,NO IDENTIFICADO,1,1,1",42
+440409,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,FBMWCR451,ANTONIO ,JIMENEZ ,NO IDENTIFICADO,1,1,1",42
+440410,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,1N7QXHSCK,JOSE ,QUIRICO ROCHE ,NO IDENTIFICADO,1,1,1",42
+440411,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,5AW9VJB6C,CARLOS ,TAVERAS,NO IDENTIFICADO,1,1,1",42
+440412,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,BNGC6VQMR,DAVID ,RAMOS ,NO IDENTIFICADO,1,1,1",42
+440413,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-09,E910FBDM=,RAMON,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440414,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,01X38KGDR,JUAN ,DE LA CRUZ,NO IDENTIFICADO,1,1,1",42
+440415,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,6NRSM3MAQ,JUAN ,CARLO,NO IDENTIFICADO,1,1,1",42
+440416,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,11A6D3T17,RAMON,MARTINEZ,NO IDENTIFICADO,1,1,1",42
+440417,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,CPWD8BB5J,YUBELKIS,FIGUEREO,NO IDENTIFICADO,1,1,1",42
+440418,ajetlregs,2015-10-12 12:45:06,INVALID DATE,Año de nacimiento está mal.,"2015-06-22,ZBC4ESGYJ,JOSEFINA ,SALAZAL ,NO IDENTIFICADO ,1,1,1",42
+440501,ajetlregs,2015-10-12 12:48:51,INVALID DATE,Año de nacimiento está mal.,"2015-07-23,1M9AACS4B,RAMON ,GUERRA ,NO IDENTIFICADO ,1,1,1",42
+440502,ajetlregs,2015-10-12 12:48:51,INVALID DATE,Año de nacimiento está mal.,"2015-07-21,4JXJP4DNC,GLORIA ,ARIAS ,NO IDENTIFICADO ,1,1,1",42
+440509,ajetlregs,2015-10-12 12:48:53,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,QM3C4G51V,LUIS MANUEL ,ROJAS ,NO IDENTIFICADO,1,1,1",42
+440510,ajetlregs,2015-10-12 12:48:53,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,YSR0W9Q07,LUZ DIVINA ,GUZMAN ,NO IDENTIFICADO,1,1,1",42
+440511,ajetlregs,2015-10-12 12:48:53,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,XZSYY3JH3,SANDRA ,RAMIREZ ,NO IDENTIFICADO,1,1,1",42
+440512,ajetlregs,2015-10-12 12:48:53,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,4MHJHY5NU,FRANCIS ,GUERRERO ,NO IDENTIFICADO,1,1,1",42
+440513,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,C5KD96134,FELIZ,JUAN,NO IDENTIFICADO,1,1,1",42
+440514,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,GW1TMN5NZ,FREDDY,CASTILLO,NO IDENTIFICADO,1,1,1",42
+440515,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,0K5QS73E4,SANDRA ,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440516,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,0K5QS73E4,SANDRA ,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440517,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,C5KD96134,FELIZ,JUAN,NO IDENTIFICADO,1,1,1",42
+440518,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,FBMWCR451,ANTONIO ,JIMENEZ ,NO IDENTIFICADO,1,1,1",42
+440519,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,1N7QXHSCK,JOSE ,QUIRICO ROCHE ,NO IDENTIFICADO,1,1,1",42
+440520,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,5AW9VJB6C,CARLOS ,TAVERAS,NO IDENTIFICADO,1,1,1",42
+440521,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,BNGC6VQMR,DAVID ,RAMOS ,NO IDENTIFICADO,1,1,1",42
+440522,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-09,E910FBDM=,RAMON,GONZALEZ,NO IDENTIFICADO,1,1,1",42
+440523,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,01X38KGDR,JUAN ,DE LA CRUZ,NO IDENTIFICADO,1,1,1",42
+440678,ajetlregs,2015-10-12 12:50:45,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,27
+440679,ajetlregs,2015-10-12 12:50:45,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: No,27
+440681,ajetlregs,2015-10-12 12:50:45,MySQL ERROR,MySQL error.,81e9584e9613cadbe129756015667535:2015-04-29,27
+440682,ajetlregs,2015-10-12 12:50:45,MySQL ERROR,MySQL error.,"SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '809-273-2009' ,'No' ,'Sí' ,'Sí' ,'Sí' ,'No' ,'M' )' at line 1",
+440683,ajetlregs,2015-10-12 12:51:38,MESSAGE Collateral,Estecolateralparticipante key turn,Estecolateralparticipante,21
+440684,ajetlregs,2015-10-12 12:51:38,MESSAGE Collateral,KEY FOUND,Estecolateralparticipante value: Sí,21
+440686,ajetlregs,2015-10-12 12:51:38,MySQL ERROR,MySQL error.,cbd3a58eb4fc0ae7b08f7125dbf321e5:2013-12-05,21
+440687,ajetlregs,2015-10-12 12:51:38,MySQL ERROR,MySQL error.,"SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '8496650751' ,'true' ,'' ,'07' ,'10' ,'SAN FELIPE DE PUERTO PLATA' ,'geldy barrie' at line 1",
+440524,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,6NRSM3MAQ,JUAN ,CARLO,NO IDENTIFICADO,1,1,1",42
+440525,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,11A6D3T17,RAMON,MARTINEZ,NO IDENTIFICADO,1,1,1",42
+440526,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-19,CPWD8BB5J,YUBELKIS,FIGUEREO,NO IDENTIFICADO,1,1,1",42
+440527,ajetlregs,2015-10-12 12:48:54,INVALID DATE,Año de nacimiento está mal.,"2015-06-22,ZBC4ESGYJ,JOSEFINA ,SALAZAL ,NO IDENTIFICADO ,1,1,1",42
+440395,ajetlregs,2015-10-12 12:45:01,INVALID DATE,Año de nacimiento está mal.,"2015-04-21,RW5MTSK2V,Juana,Sanchez,no identificado,1,1,1",6
+440419,ajetlregs,2015-10-12 12:45:10,INVALID DATE,Año de nacimiento está mal.,"2015-04-27,C37EBVA13,Nandy,Vasquez,No identificado,1,1,1",6
+440465,ajetlregs,2015-10-12 12:46:33,INVALID DATE,Año de nacimiento está mal.,"05/06/2014,KQ0R719TK,Simon.,De la Rosa,CAPOTILLO,01,01,01",6
+440466,ajetlregs,2015-10-12 12:46:41,INVALID DATE,Año de nacimiento está mal.,"2013-12-15,ZX8F72B4N,Beatriz,Maldonado,Simon Bolivar,1,1,1",6
+440470,ajetlregs,2015-10-12 12:46:57,INVALID DATE,Año de nacimiento está mal.,"2013-08-23,4M368G3CS,Emilio,Ramirez,La Barquita,1,1,1",6
+440471,ajetlregs,2015-10-12 12:46:57,INVALID DATE,Año de nacimiento está mal.,"2013-08-23,DNZQZ7JPD,Yeferson,Vicaino,La Barquita,1,1,1",6
+440472,ajetlregs,2015-10-12 12:46:57,INVALID DATE,Año de nacimiento está mal.,"2014-05-12,1XNXV5J69,Wilkin Daniel,Arias Beltre,SIMON BOLIVAR,10,31,2",6
+440474,ajetlregs,2015-10-12 12:46:57,INVALID DATE,Año de nacimiento está mal.,"2013-08-03,QXRQMC2AH,Yimi,Asenso,VILLA LIBERACION,7,1,19",6
+440497,ajetlregs,2015-10-12 12:48:49,INVALID DATE,Año de nacimiento está mal.,"2015-04-21,RW5MTSK2V,Juana,Sanchez,no identificado,1,1,1",6
+440534,ajetlregs,2015-10-12 12:48:59,INVALID DATE,Año de nacimiento está mal.,"2015-04-27,C37EBVA13,Nandy,Vasquez,No identificado,1,1,1",6
+440692,ajetlregs,2015-10-12 12:52:51,INVALID DATE,Año de nacimiento está mal.,"05/06/2014,KQ0R719TK,Simon.,De la Rosa,CAPOTILLO,01,01,01",6
+440700,ajetlregs,2015-10-12 12:54:47,INVALID DATE,Año de nacimiento está mal.,"2013-12-15,ZX8F72B4N,Beatriz,Maldonado,Simon Bolivar,1,1,1",6
+440709,ajetlregs,2015-10-12 13:01:15,INVALID DATE,Año de nacimiento está mal.,"2013-08-23,4M368G3CS,Emilio,Ramirez,La Barquita,1,1,1",6
+440710,ajetlregs,2015-10-12 13:01:15,INVALID DATE,Año de nacimiento está mal.,"2013-08-23,DNZQZ7JPD,Yeferson,Vicaino,La Barquita,1,1,1",6
+440711,ajetlregs,2015-10-12 13:01:16,INVALID DATE,Año de nacimiento está mal.,"2014-05-12,1XNXV5J69,Wilkin Daniel,Arias Beltre,SIMON BOLIVAR,10,31,2",6
+440713,ajetlregs,2015-10-12 13:01:16,INVALID DATE,Año de nacimiento está mal.,"2013-08-03,QXRQMC2AH,Yimi,Asenso,VILLA LIBERACION,7,1,19",6
+440441,ajetlregs,2015-10-12 12:45:26,INVALID DATE,Año de nacimiento está mal.,"2015-07-24,PDD88ZRRR,Nanci,R. Pimentel,Bonao,1,1,19990",9
+440593,ajetlregs,2015-10-12 12:49:29,INVALID DATE,Año de nacimiento está mal.,"2015-07-24,PDD88ZRRR,Nanci,R. Pimentel,Bonao,1,1,19990",9
+440723,ajetlregs,2015-10-12 13:04:40,MESSAGE,Document processed82,,

@@ -2,14 +2,9 @@
 /**
  * Created by IntelliJ IDEA.
  *
- * This program will parse input CSV file and will assign existing participants to existing activities. The
- * program expects organization-activities input file that is queried from the Drupal database. To query the most
- * recent program and activities you need to run the query ActivitiesByProgram.sql and export the data in format as
- * it's done in the input/SantoDomingoActivitiesDEVWithDates.csv file.
- * The program will generate output status file specified in $outputCSVFileName global variable.
- * 
- * To do that it will connect directly to couchDb using the PHP-on-Couch-master library downloaded from GitHub.
- * For more information on this library go here:
+ * This program will parse input CSV file and depending of the Decision column will mark the documents as
+ * complete, duplicate or deleted. To do that it will connect directly to couchDb using the PHP-on-Couch-master
+ * library downloaded from GitHub. For more information on this library go here:
  *
  * http://www.ibm.com/developerworks/library/os-php-couchdb/#resources
  *

@@ -1,0 +1,4 @@
+name = List of Beneficiaries
+description = This is the List of Beneficiaries
+core = 7.x
+php = 5.2

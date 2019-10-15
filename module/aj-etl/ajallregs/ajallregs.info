@@ -1,0 +1,3 @@
+name = AJ ETL ALL Registrations
+description = Extracts, transforms and load ALL registrations from CouchDB into Drupal/mySQL database.
+core = 7.x

@@ -1,0 +1,1662 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajlabor_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajlabor":
+			return '<p>' . t("Implementation of the Labor Survey Form") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajlabor_menu() {
+	$items = array();
+
+	$items['ajlabor'] = array(
+		'title' => 'Labor Survey form',
+		'description' => 'Form to collect data of a Labor Insertion participant',
+		'page callback' => '_ajlabor_page',
+    	'page arguments' => array('ajlabor_form'),
+		'access arguments' => array('access ajlabor content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+ /**
+  *  Page callback: Current users settings
+  *  @see current_users_menu()
+  */
+function ajlabor_form($form, &$form_state) {
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+	$editing = false;
+
+	$beneficiary = _ajlabor_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.'). Su edad actual es '. $beneficiary['edad']. ' años';
+
+	if (!_ajbeneficiaryEligible($uuid)) {
+		drupal_set_message(t('Este beneficiario no ha participado en los programas Capacitación Técnico vocacional,
+				Microcréditos, Auto empleo/Empredurismo o La Compañía: <b>'.$beneficiaryDetails.'</b>'), 'error');
+		$form['actions']['cancel'] = array(
+				'#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+		);
+		return $form;
+	}
+	if (_aj_exit_($uuid)) {
+	
+		drupal_set_message(t('Ya existe un Formulario de Salida disponible para <b>'.$beneficiaryDetails.'</b>. No se puede editar este contacto'), 'warning');
+		$form['actions']['cancel'] = array(
+				'#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+		);
+		return $form;
+	}
+	
+	if (_ajlabor_alreadyExist($uuid)) {
+		if (!_ajlabor_isEditable($uuid)) {
+			drupal_set_message(t('La Encuesta Laboral existente no cumple las condiciones para ser editada: Este beneficiario tiene un nuevo o mejor empleo. Beneficiario: <b>'.$beneficiaryDetails.'</b>'), 'error');
+			$form['actions']['cancel'] = array(
+					'#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+			);
+			return $form;
+		} else {
+			$editing = false;
+			$existingLaborForm = _ajlabor_getExistingLaborForm($uuid);
+			$label = '<p>Estás <b>****EDITANDO****</b> la <b>version '.$existingLaborForm['version'].'</b> de la Encuesta de Inserción Laboral para <b>'.$beneficiaryDetails.'</b></p>';
+		}
+	} else {
+		$label = '<p>Estás creando una <b>NUEVA</b> Encuesta de Inserción Laboral para <b>'.$beneficiaryDetails.'</b></p>';
+	}
+	
+	$form['welcome'] = array(
+	  '#markup' => $label,
+	);
+	
+	//  Tab 1
+	$form['initial'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Participación en el programa'),
+			'#collapsible' => true,
+			'#collapsed' => $editing,
+	);
+	
+	// Tab 2
+	$form['laboral'] = array(
+    	'#type'  => 'fieldset',
+    	'#title' => t('Condición Laboral'),
+    	'#collapsible' => true,
+    	'#collapsed' => FALSE,
+		'#states' => array(
+				'visible' => array(
+						array('select[name="1"]' => array('value' => 'Sí')),
+				),
+		),
+	);
+
+	// Tab 3
+	$form['credits'] = array(
+    	'#type'  => 'fieldset',
+    	'#title' => t('Obtención de Microcréditos'),
+    	'#collapsible' => true,
+    	'#collapsed' => FALSE,
+    	'#group' => 'group_tabs',
+			'#states' => array('visible' => array(array('select[name="1"]' => array('value' => 'Sí')))),
+	);
+	
+	//  Tab 4
+	$form['end'] = array(
+	    '#type'  => 'fieldset',
+	    '#title' => t('Contacto con el participante'),
+	    '#collapsible' => true,
+	    '#collapsed' => $editing,
+	);
+
+	$YesNoOptions = array(
+		1 => t('Sí'),
+		2 => t('No'),
+	);
+	
+	$form['initial']['0'] = array(
+	    '#type' => 'date_popup',
+	    '#title' => t('1. Fecha de llenado:'),
+	    '#date_format' => 'd M Y',
+	    '#default_value' => (isset($existingLaborForm)? date("Y-m-d H:i:s", strtotime($existingLaborForm['0_fechadellenado'])) : null),
+	    '#required' => TRUE,
+	    '#disabled' => $editing,
+	);
+	
+	$form['initial']['1'] = array(
+		'#type' => 'select',
+		'#title' => t('2. ¿Has participado en algún curso del Proyecto de la USAID Alerta Joven en el que te enseñaron algo que te puede servir para trabajar?'),
+		'#default_value' => (isset($existingLaborForm)? $existingLaborForm['1_HasparticipadoenalguncursodelproyectoAlerta']:null),
+		'#options' => drupal_map_assoc($YesNoOptions),
+		'#required' => TRUE,
+		'#disabled' => $editing,
+	);
+	
+	$_cursos = array(
+	    t('Auxiliar de calidad'),	  
+	    t('Auxiliar de Contabilidad'),
+	    t('Auxiliar de Farmacia'),
+	    t('Bartender'),
+	    t('Call center'),	    
+	    t('Camarero'),
+	    t('Capacitación propia de la industria'),
+	    t('Cocina'),	    
+	    t('Desarrollo de Software'),
+	    t('Emprendimiento/Autoempleo'),
+	    t('Ensamblador de equipos'),
+	    t('Ensamblador de dispositivos médicos'),	    
+	    t('Electricidad'),	    
+	    t('Guía turístico'),   	    
+	    t('Industrialización del cacao'),
+	    t('Inglés para servicio'),
+	    t('Instalación de redes telefónicas'),	 
+	    t('Instalación de Redes Telefónicas y Fibras Ópticas'),
+	    t('Moldeo por inyección'),
+	    t('Operador por teléfono'),	   
+	    t('Otro'),		    
+	    t('Paguete de oficina'),	    
+	    t('Panes Domésticos y Europeos'),	    
+	    t('Pantrista (Cocina doméstica)'),
+	    t('Programación Básica (Codificación)'),
+	    t('Pulidor de joyas'),
+	    t('Receción de Hoteles'),	    
+	    t('Redes de información'),
+	    t('Reparación de Computadoras'),
+	    t('Secretariado'), 
+	    t('Secretariado ejecutivo'),
+	    t('Servicio al Cliente'),
+	    t('Soporte en redes de información'),
+	    t('Supervisor de Calidad'),
+	    t('Ventas'),
+	    t('Redes Telefónicas'),
+	    t('Reparación de Computadoras y Mantenimiento de Redes'),
+	);
+	
+	$form['laboral']['4_3'] = array(
+	    '#type' => 'select',
+	    '#title' => t('2.1 ¿Cuál curso realizaste?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_3Cualcursorealizaste']:null),
+	    '#options' => drupal_map_assoc($_cursos),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	      		'visible' => array(array('select[name="1"]' => array('value' => 'Sí'))),
+	    ),
+	);
+	
+	$form['laboral']['4_3Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('2.1.Otro (favor especificar):'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_3Otrofavorespecificar']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array (
+						array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4_3"]' => array('value' => 'Otro')),
+	            ),
+	    ),
+	);
+
+	$form['laboral']['4'] = array(
+		'#type' => 'select',
+		'#title' => t('3. ¿Después de haber terminado tu capacitación técnica del Proyecto de la USAID Alerta Joven, conseguiste un trabajo o pasantía en el que te paguen?'),
+		'#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_Actualmentetienesuntrabajoenel']:null),
+		'#options' => drupal_map_assoc($YesNoOptions),
+		'#empty_option' => t('- Select -'),
+		'#required' => FALSE,
+		 '#states' => array(
+      		'visible' => array(
+        		array('select[name="1"]' => array('value' => 'Sí')),
+      		),
+    	),
+	);
+	
+	$form['laboral']['4_4'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('4.  ¿Dónde? <br> Nombre de la empresa:'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_4Nombredelaempresa']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 50,
+	    '#states' => array(
+	        'visible' => array (
+					array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+	            ),
+	    ),
+	);
+	
+	$form['laboral']['4_5'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('4.1 Teléfono de la empresa:'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_5Telefonodelaempresa']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 16,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['4_2'] = array(
+	    '#type' => 'select',
+	    '#title' => t('5. ¿Es éste tu primer empleo?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_2Esestetuprimerempleo']:null),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	      		'visible' => array(
+					array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+	      		),
+	    ),
+	);
+	
+	$_empleo = array(
+	    t('Arreglo computadoras'),
+	    t('Auxiliar de Contabilidad'),
+	    t('Bartender'),      
+	    t('Camarero/a'),
+	    t('Cocinero'),	    
+	    t('Desarrollo de Software'),
+	    t('Electricista'),	    
+	    t('Ensamblador de Dispositivos Médicos'),
+	    t('Farmacéutico'),
+	    t('Guía turístico'),	    
+	    t('Instalador de teléfono'),	    
+	    t('Mecánica de Motocicletas'),	    
+	    t('Operario'),
+	    t('Otro'),	    
+	    t('Programador básico'),
+	    t('Pulidor de joyas'),
+	    t('Secretaria/o'),	    
+	    t('Seguridad'),
+	    t('Servicio al cliente'),	    
+	    t('Soporte en redes de información'),
+	    t('Supervisor'),	    
+	    t('Vendedor'),
+	);
+	
+	$form['laboral']['4_1'] = array(
+			'#type' => 'select',
+			'#title' => t('6. ¿Qué haces en ese trabajo?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_1Quehacesenesetrabajo']:null),
+			'#options' => drupal_map_assoc($_empleo),
+			'#empty_option' => t('- Select -'),
+	        '#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+// 						array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'Sí'))),
+					),
+			),
+	);
+	
+	$form['laboral']['4_1Otro'] = array(
+		'#type' => 'textfield',
+		'#title' => t('6.1.Otro (favor especificar):'),
+		'#default_value' => (isset($existingLaborForm)? $existingLaborForm['4_1Otrofavorespecificar']:null),
+		'#required' => FALSE,
+		'#maxlength' => 50,
+		'#states' => array(
+				'visible' => array (
+// 					array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'Sí'), 'select[name="4_1"]' => array('value' => 'Otro')),
+				    array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4_2"]' => array('value' => 'Sí'), 'select[name="4_1"]' => array('value' => 'Otro')),
+				),
+			),
+	);
+	
+	$_5Options = array(
+		t('Menos de una semana'),
+		t('1 a 4 semanas'),
+		t('1 a 3 meses'),
+		t('Más de 3 meses'),
+	    t('Más de 6 meses'),
+	    t('Más de 1 año'),
+	    
+	);
+	
+	$form['laboral']['5'] = array(
+			'#type' => 'select',
+			'#title' => t('7. ¿Cuánto tiempo tienes en este trabajo?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['5_Cuantotiempotienesenestetrabajo']:null),
+			'#options' => drupal_map_assoc($_5Options),
+			'#empty_option' => t('- Select -'),
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+// 						array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'Sí'))),
+				), 
+					),
+	);
+	
+	$_6Options = array(
+			1 => t('Fijo'),
+			2 => t('Temporal (dura algún tiempo pero no es fijo)'),
+			3 => t('Pasantía pagada'),
+	        4 => t('Ocasional (lo haces en algunas ocasiones y en días específicos)'),
+	);
+	
+	$form['laboral']['6'] = array(
+			'#type' => 'select',
+			'#title' => t('8. ¿Este trabajo es...?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['6_Estetrabajoes']:null),
+			'#options' => drupal_map_assoc($_6Options),
+			'#empty_option' => t('- Select -'),
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+// 						array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'Sí'))),
+					),
+			),
+	);
+
+	$form['laboral']['6Otro'] = array(
+		'#type' => 'textfield',
+		'#title' => t('8.Otro (favor especificar):'),
+		'#default_value' => (isset($existingLaborForm)? $existingLaborForm['6_Otrofavorespecificar']:null),
+		'#required' => FALSE,
+		'#maxlength' => 50,
+		'#states' => array(
+				'visible' => array (
+// 					array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'Sí'), 'select[name="6"]' => array('value' => 'Otro')),
+				    array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4_2"]' => array('value' => 'Sí'), 'select[name="6"]' => array('value' => 'Otro')),
+				),
+			),
+	);
+	
+	$_7Options = array(
+			1 => t('Menos de 4,000'),
+			2 => t('De 4,001 - 8,000'),
+			3 => t('De 8,001 - 12,000'),
+	        4 => t('De 12,001 - 15,000'),
+	        5 => t('Más de 15,000'),   
+	);
+	
+	$form['laboral']['7'] = array(
+			'#type' => 'select',
+			'#title' => t('9. ¿Cuánto ganas en un mes?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['7_Cuantoganasenunasemana']:null),
+			'#options' => drupal_map_assoc($_7Options),
+			'#empty_option' => t('- Select -'),
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+// 						array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'Sí'))),
+					),
+					),
+	);
+	
+	$_7_1Options = array(
+	    1 => t('Totalmente de acuerdo'),
+	    2 => t('De acuerdo'),
+	    3 => t('Ni de acuerdo ni en desacuerdo'),
+	    4 => t('En desacuerdo'),
+	    5 => t('En total desacuerdo'),
+	);
+	
+	$form['laboral']['7_1'] = array(
+	    '#type' => 'select',
+	    '#title' => t('9.1. ¿Qué tan de acuerdo estás con esta afirmación: "Tu participación en el curso técnico a través del Proyecto de la USAID Alerta Joven te ayudó a conseguir o mejorar el trabajo"?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['7_1QueTanDeAcuerdoEstasConEstaAfirmacion']:null),
+	    '#options' => drupal_map_assoc($_7_1Options),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	        // 	array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8'] = array(
+			'#type' => 'select',
+			'#title' => t('10. ¿Estabas trabajando antes de iniciar la capacitación del Proyecto de la USAID Alerta Joven?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_Cuandoiniciasteelcursotecnicoyaestabas']:null),
+			'#options' => drupal_map_assoc($YesNoOptions),
+			'#empty_option' => t('- Select -'),
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4_2"]' => array('value' => 'No'))),	    
+					),
+			 ),
+	);
+	
+// 	$form['laboral']['8_0'] = array(
+// 	    '#type' => 'select',
+// 	    '#title' => t('11. ¿Cambiaste de lugar de trabajo después de la capacitación de Alerta Joven?'),
+// 	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_3Cambiastedelugardetrabajodespues']:null),
+// 	    '#options' => drupal_map_assoc($YesNoOptions),
+// 	    '#empty_option' => t('- Select -'),
+// 	    '#required' => FALSE,
+// 	    '#states' => array(
+// 	        'visible' => array (
+// 	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí'))),
+// 	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí'))),
+// 	        ),
+// 	    ),
+// 	);
+	
+	$_8_1Options = array(
+	    1 => t('Sí'),
+	    2 => t('No'),
+	);
+	
+	$form['laboral']['8_1'] = array(
+			'#type' => 'select',
+			'#title' => t('11. ¿Consideras que tu trabajo actual es mejor que el anterior?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_1Considerasquetutrabajoactual']:null),
+			'#options' => drupal_map_assoc($_8_1Options),
+			'#empty_option' => t('- Select -'),
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array (
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí'))),
+					    array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí'))),
+					),
+			),
+	);
+	
+	$whyBetterJobOptions = array(
+	    t('Mejor cobertura médica (Seguro médico)'),
+	    t('Ambiente laboral'),
+	    t('Bonificaciones adicionales al salario'),
+	    t('Pago de capacitaciones'),
+	    t('Pago de horas extras'),
+	    t('Pago de licencias médicas'),
+	    t('Seguro médico'),
+	    t('Seguridad laboral'),
+	    t('Mejor horario laboral'),
+	    t('Crecimiento profesional'),
+	    t('Estabilidad en el puesto'),
+	    t('Otro'),
+	);
+	
+	$form['laboral']['8_2'] = array(
+	    '#type' => 'select',
+	    '#title' => t('12. ¿Por qué considera que es un mejor empleo?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_2Porqueconsideraqueesunmejorempleo']:null),
+	    '#options' => drupal_map_assoc($whyBetterJobOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_2Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('12.Otro (favor especificar):'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_2Otrofavorespecificar']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 30,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'Sí'), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí')), 'select[name="8_2"]' => array('value' => 'Otro')),
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'No'), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí')), 'select[name="8_2"]' => array('value' => 'Otro')),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_3'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.1. ¿Qué haces en ese trabajo?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_3QueHacesEnEseTrabajo']:null),
+	    '#options' => drupal_map_assoc($_empleo),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_3Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('13.1. Otro (favor especificar):'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_3Otrofavorespecificar']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 30,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'Sí'), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí')), 'select[name="8_3"]' => array('value' => 'Otro')),
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="4"]' => array('value' => 'No'), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí')), 'select[name="8_3"]' => array('value' => 'Otro')),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_4'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.2. ¿Cuánto tiempo tienes en este trabajo?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_4CuantoTiempoTienesEnEseTrabajo']:null),
+	    '#options' => drupal_map_assoc($_5Options),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_5'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.3. ¿Este trabajo es...?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_5EsteTrabajoEs']:null),
+	    '#options' => drupal_map_assoc($_6Options),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_6'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.4. ¿Cuánto ganas en un mes?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_6CuantoGanasEnUnMes']:null),
+	    '#options' => drupal_map_assoc($_7Options),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['laboral']['8_7'] = array(
+	    '#type' => 'select',
+	    '#title' => t('13.5. ¿Qué tan de acuerdo estás con esta afirmación: "Tu participación en el curso técnico a través del Proyecto de la USAID Alerta Joven te ayudó a mejorar el trabajo"?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['8_7QueTanDeAcuerdoEstasConEstaafirmacion']:null),
+	    '#options' => drupal_map_assoc($_7_1Options),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'Sí')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="4"]' => array('value' => 'No')), array('select[name="8"]' => array('value' => 'Sí')), array('select[name="8_1"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+		
+	$form['credits']['13'] = array(
+			'#type' => 'select',
+			'#title' => t('14. ¿Has recibido algún apoyo del Proyecto de la USAID Alerta Joven para montar o mejorar tu negocio?'),
+			'#default_value' => (isset($existingLaborForm)? $existingLaborForm['13_Hasrecibidounprestamoatravesdelproyecto']:null),
+			'#options' => drupal_map_assoc($YesNoOptions),
+			'#empty_option' => t('- Select -'),
+			'#disabled' => $editing,
+			'#required' => FALSE,
+			'#states' => array(
+					'visible' => array(
+							array('select[name="1"]' => array('value' => 'Sí')),
+					),
+			),
+	);
+	
+	$typeOfSupport = array(
+	    1 => t('Capacitación emprendimiento'),
+	    2 => t('Coaching'),
+	    3 => t('Monetario'),
+	);
+	
+	$form['credits']['15'] = array(
+	    '#type' => 'select',
+	    '#title' => t('15. ¿Qué tipo de apoyo?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['15_Quetipodeapoyo']:null),
+	    '#options' => drupal_map_assoc($typeOfSupport),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí'))),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['13_1'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('15.1 ¿Cuánto recibiste?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['13_1Quemontorecibiste']:null),
+		'#required' => FALSE,
+		'#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí'), 'select[name="15"]' => array('value' => 'Monetario'))),
+	        ),
+	    ),
+	);
+	
+	$StablishNewBusiness = array(
+	    t('Sí'),
+	    t('No'),
+	    t('Ya tenía un negocio'),
+	);
+	
+	$form['credits']['14'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16. ¿Pudiste montar tu negocio después del apoyo recibido del Proyecto de la USAID Alerta Joven?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['14_Tienesunnegociopropio']:null),
+	    '#options' => drupal_map_assoc($StablishNewBusiness),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$gainsOptions = array(
+	    t('Menos de 3,000 pesos'),
+	    t('De 4,001 - 8,000 pesos'),
+	    t('De 8,001 - 12,000 pesos'),
+	    t('Más de 12,000 pesos'),
+	);
+	
+	$form['credits']['13_2'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16.1. ¿Cuánto vende o genera tu negocio mensualmente?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['13_2Quemontogeneratunegociomensualmente']:null),
+	    '#options' => drupal_map_assoc($gainsOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="14"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$employeesNumberOptions = array(
+	    t('Sólo yo'),
+	    t('Otra cantidad'),
+	);
+	
+	$form['credits']['14_2'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16.2. ¿Cuántos empleados tienes en el negocio/empresa?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['14_2CuantosEmpleadosEnTuEmpresa']:null),
+	    '#options' => drupal_map_assoc($employeesNumberOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="14"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['14_2Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('16.2 ¿Cuál cantidad?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['14_2CuantosEmpleadosOtro']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="14"]' => array('value' => 'Sí'), 'select[name="14_2"]' => array('value' => 'Otra cantidad')),
+	        ),
+	    ),
+	);
+	
+	$businessTiersOptions = array(
+	    t('Venta de alimentos y bebidas preparados '),
+	    t('Venta de productos'),
+	    t('Cuidado personal'),
+	    t('Artesanía y decoración'),
+	    t('Servicios técnicos'),
+	    t('Mecánica'),
+	    t('Servicios audiovisuales'),
+	    t('Diseño Gráfico'),
+	    t('Agroindustria'),
+	    t('Servicios turísticos'),
+	    t('Servicios de enseñanzas'),
+	    t('Otro'),
+	);
+	
+	$form['credits']['14_1'] = array(
+	    '#type' => 'select',
+	    '#title' => t('16.3. ¿A qué se dedica tu negocio?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['14_1Aquesededicatunegocio']:null),
+	    '#options' => drupal_map_assoc($businessTiersOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="14"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['14_1Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('16.3 Otro:'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['14_1Otro']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="14"]' => array('value' => 'Sí'), 'select[name="14_1"]' => array('value' => 'Otro')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['16'] = array(
+	    '#type' => 'select',
+	    '#title' => t('17. ¿Consideras que después del soporte del Proyecto de la USAID Alerta Joven tu negocio ha mejorado?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['16_Siyateniasunnegocioconsiderasquedespuesdel']:null),
+	    '#options' => drupal_map_assoc($YesNoOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="14"]' => array('value' => 'Ya tenía un negocio')),
+	        ),
+	    ),
+	);
+	
+	$howTheBusinessHasImproved = array(
+	    t('Mayores ingresos'),
+	    t('Mayor variedad de productos o servicios ofrecidos'),
+	    t('Mejor planificación'),
+	    t('Mejor atención al cliente'),
+	    t('Más productos o servicios ofrecidos'),
+	    t('Mejor ubicación'),
+	    t('Mayor conocimiento de tu negocio'),
+	    t('Otro'),
+	);
+	
+	$form['credits']['17'] = array(
+	    '#type' => 'select',
+	    '#title' => t('18. ¿Cómo ha mejorado?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['17_Comohamejorado']:null),
+	    '#options' => drupal_map_assoc($howTheBusinessHasImproved),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="14"]' => array('value' => 'Ya tenía un negocio'), 'select[name="16"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['17_Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('18. Otro:'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['17_Otro']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="14"]' => array('value' => 'Ya tenía un negocio'), 'select[name="16"]' => array('value' => 'Sí'), 'select[name="17"]' => array('value' => 'Otro')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['19'] = array(
+	    '#type' => 'select',
+	    '#title' => t('19. ¿Cuánto vende o genera tu negocio mensualmente?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['19_Quemontogeneratunegociomensualmente']:null),
+	    '#options' => drupal_map_assoc($gainsOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="16"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['19_1'] = array(
+	    '#type' => 'select',
+	    '#title' => t('19.1. ¿Cuántos empleados tienes en el negocio/emprensa?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['19_1CuantosEmpleadosEnTuEmpresa']:null),
+	    '#options' => drupal_map_assoc($employeesNumberOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="16"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['19_1Cantidad'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('19.1 ¿Cuál cantidad?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['19_1CuantosEmpleadosOtro']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="16"]' => array('value' => 'Sí'), 'select[name="19_1"]' => array('value' => 'Otra cantidad')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['20'] = array(
+	    '#type' => 'select',
+	    '#title' => t('20. ¿A qué se dedica tu negocio?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['20_Aquesededicatunegocio']:null),
+	    '#options' => drupal_map_assoc($businessTiersOptions),
+	    '#empty_option' => t('- Select -'),
+	    '#required' => FALSE,
+	    '#states' => array(
+	        'visible' => array(
+	            array('select[name="1"]' => array('value' => 'Sí'), array('select[name="13"]' => array('value' => 'Sí')), 'select[name="16"]' => array('value' => 'Sí')),
+	        ),
+	    ),
+	);
+	
+	$form['credits']['20_Otro'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('20. Otro:'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['20_Otro']:null),
+	    '#required' => FALSE,
+	    '#maxlength' => 15,
+	    '#states' => array(
+	        'visible' => array (
+	            array('select[name="1"]' => array('value' => 'Sí'), 'select[name="13"]' => array('value' => 'Sí'), 'select[name="16"]' => array('value' => 'Sí'), 'select[name="20"]' => array('value' => 'Otro')),
+	        ),
+	    ),
+	);
+	
+	$form['end']['18'] = array(
+	    '#type' => 'textfield',
+	    '#title' => t('21. ¿Quién contactó al participante?'),
+	    '#default_value' => (isset($existingLaborForm)? $existingLaborForm['18_Quiencontactoalparticipante']:null),
+	    '#required' => TRUE,
+	    '#maxlength' => 15
+	);
+	
+	$form['actions'] = array('#type' => 'actions');
+
+	$form['actions']['cancel'] = array(
+		'#type' => 'submit',
+		'#prefix' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<div style="display: inline-block; width: 200px;" class = "remove"><br>',
+		'#sufix' => '</div> <br>',
+		'#value' => t('Cancelar'),
+		'#limit_validation_errors' => array(),
+		'#submit' => array('ajregistration_form_submit'),
+		'#weight' => 100,
+	);
+
+	$form['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#prefix' => '',
+		'#sufix' => '',
+		'#value' => t('Guardar'),
+		'#weight' => 100,
+	);
+
+	return $form;
+}
+
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function ajlabor_form_submit($form, &$form_state) {
+
+	if ( $form_state['clicked_button']['#value'] === 'Cancelar' ) {
+		drupal_set_message('Formulario descartado', 'warning');
+		$form_state['redirect'] = 'mis-beneficiarios';
+		return;
+	}
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+	$provider_id = $urlParams['provider_id'];
+
+	$beneficiary = _ajlabor_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
+		
+	watchdog("ajlabor", "In ajlabor_form_submit".$form_state['values']['16']);
+	watchdog("ajlabor", "In ajlabor_form_submit".$form_state['values']['17']);
+	
+	_ajlabor_insert_data(
+	        $form_state['values']['0'],	   
+			$form_state['values']['1'],
+	        $form_state['values']['4_3'],
+	        $form_state['values']['4_3Otro'],
+			$form_state['values']['4'],
+	        $form_state['values']['4_4'],
+	        $form_state['values']['4_5'],
+	        $form_state['values']['4_2'],
+			$form_state['values']['4_1'],
+	        $form_state['values']['4_1Otro'],
+			$form_state['values']['5'],
+			$form_state['values']['6'],
+			$form_state['values']['6Otro'],
+			$form_state['values']['7'],
+	        $form_state['values']['7_1'],
+			$form_state['values']['8'],
+			$form_state['values']['8_1'],
+	        $form_state['values']['8_2'],
+	        $form_state['values']['8_2Otro'],
+	        $form_state['values']['8_3'],
+	        $form_state['values']['8_3Otro'],
+	        $form_state['values']['8_4'],
+	        $form_state['values']['8_5'],
+	        $form_state['values']['8_6'],
+	        $form_state['values']['8_7'],
+	    // 	        $form_state['values']['8_0'],
+			$form_state['values']['13'],
+	        $form_state['values']['13_1'],
+	        $form_state['values']['13_2'],
+			$form_state['values']['14'],
+	        $form_state['values']['14_1'],
+	        $form_state['values']['14_1Otro'],
+	        $form_state['values']['14_2'],
+	        $form_state['values']['14_2Otro'],
+	        $form_state['values']['15'],
+  	        $form_state['values']['16'],
+  	        $form_state['values']['17'],
+	        $form_state['values']['17_Otro'],
+	        $form_state['values']['18'],
+	        $form_state['values']['19'],
+	        $form_state['values']['19_1'],
+	        $form_state['values']['19_1Cantidad'],
+	        $form_state['values']['20'],
+	        $form_state['values']['20_Otro'],
+			$uuid,
+			$provider_id);
+
+	drupal_set_message('La encuesta de Inserción Laboral ha sido guardada satisfactoriamente para <b>'.$beneficiaryDetails.'</b>!');
+
+	$form_state['redirect'] = 'mis-beneficiarios';
+
+}
+
+/**
+ *	Implements validation from the Form API.
+ *
+ * @param $form
+ *   A structured array containing the elements and properties of the form.
+ * @param $form_state
+ *   An array that stores information about the form's current state
+ *   during processing.
+ */
+ function ajlabor_form_validate($form, &$form_state) {   
+   
+ 	if (!isset($form['initial']['1'])) {
+ 		return;
+ 	}
+
+ 	$_1 = $form_state['values']['1'];
+    $_4_3 = $form_state['values']['4_3'];
+    $_4_3Otro = $form_state['values']['4_3Otro'];
+ 	$_4 = $form_state['values']['4'];
+ 	$_4_4 = $form_state['values']['4_4'];
+ 	$_4_5 = $form_state['values']['4_5'];
+ 	$_4_2 = $form_state['values']['4_2'];
+    $_4_1 = $form_state['values']['4_1'];
+    $_4_1Otro = $form_state['values']['4_1Otro'];
+    $_5 = $form_state['values']['5'];
+ 	$_6 = $form_state['values']['6'];
+ 	$_6Otro = $form_state['values']['6Otro'];
+ 	$_7_1 = $form_state['values']['7_1'];
+    $_7 = $form_state['values']['7'];
+    $_8 = $form_state['values']['8'];
+ 	$_8_1 = $form_state['values']['8_1'];
+ 	$_8_2 = $form_state['values']['8_2'];
+ 	$_8_2Otro = $form_state['values']['8_2Otro'];
+ 	$_8_3 = $form_state['values']['8_3'];
+ 	$_8_3Otro = $form_state['values']['8_3Otro'];
+ 	$_8_4 = $form_state['values']['8_4'];
+ 	$_8_5 = $form_state['values']['8_5'];
+ 	$_8_6 = $form_state['values']['8_6'];
+ 	$_8_7 = $form_state['values']['8_7'];
+ 	//  	$_8_0 = $form_state['values']['8_0'];
+ 	$_13 = $form_state['values']['13'];
+ 	$_13_1 = $form_state['values']['13_1'];
+ 	$_13_2 = $form_state['values']['13_2'];
+ 	$_14 = $form_state['values']['14'];
+ 	$_14_1 = $form_state['values']['14_1'];
+ 	$_14_1Otro = $form_state['values']['14_1Otro'];
+ 	$_14_2 = $form_state['values']['14_2'];
+ 	$_14_2Otro = $form_state['values']['14_2Otro'];
+ 	$_15 = $form_state['values']['15'];
+ 	$_16 = $form_state['values']['16'];
+ 	$_17 = $form_state['values']['17'];
+ 	$_17_Otro = $form_state['values']['17_Otro'];
+ 	$_19 = $form_state['values']['19'];
+ 	$_19_1 = $form_state['values']['19_1'];
+ 	$_19_1Cantidad = $form_state['values']['19_1Cantidad'];
+ 	$_20 = $form_state['values']['20'];
+ 	$_20_Otro = $form_state['values']['20_Otro'];
+ 	 	
+ 	 	
+	if($_1 === 'Sí') {
+	  if (empty($_4_3)) {
+	    form_error($form['laboral']['4_3'], t('2.1. ¿Cuál curso realizaste?: Campo requerido'));
+	  }
+	  
+	 	if (empty($_4)) {
+			form_error($form['laboral']['4'], t('3. ¿Después de haber terminado tu capacitación técnica con Alerta Joven, conseguiste un trabajo o pasantía en el que te paguen?: Campo requerido'));
+		} 
+		
+		if ($_4_2 === 'Sí') {
+		  if (empty($_4_4)) {
+		    form_error($form['laboral']['4_4'], t('4. Nombre de la empresa: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['4_4'] = '';
+		}
+		
+		if ($_4_2 === 'Sí') {
+		  if (empty($_4_5)) {
+		    form_error($form['laboral']['4_5'], t('4.1 Teléfono de la empresa: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['4_5'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+		  if (empty($_4_2)) {
+		    form_error($form['laboral']['4_2'], t('5. ¿Es éste tu primer empleo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['4_2'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+		  if (empty($_4_1)) {
+		    form_error($form['laboral']['4_1'], t('6. ¿Qué haces en ese trabajo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['4_1'] = '';
+		  $form_state['values']['4_1Otro'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+			if (empty($_5)) {
+				form_error($form['laboral']['5'], t('7. ¿Cuánto tiempo tienes en este trabajo?: Campo requerido'));
+			}
+		} else {
+			$form_state['values']['5'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+			if (empty($_6)) {
+				form_error($form['laboral']['6'], t('8. ¿Este trabajo es...?: Campo requerido'));
+			}
+		} else {
+			$form_state['values']['6'] = '';
+			$form_state['values']['6Otro'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+			if (empty($_7)) {
+				form_error($form['laboral']['7'], t('9. ¿Cuánto ganas en un mes?: Campo requerido'));
+			}
+		} else {
+			$form_state['values']['7'] = '';
+		}
+		
+		if ($_4_2=== 'Sí') {
+		  if (empty($_7)) {
+		    form_error($form['laboral']['7_1'], t('9.1. ¿Qué tan de acuerdo estás con esta afirmación: "Tu participación en el curso técnico a través del Proyecto de la USAID Alerta Joven te ayudó a conseguir o mejorar el trabajo"?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['7_1'] = '';
+		}
+		
+		if($_4 === 'Sí'|| $_4 === 'No' || $_4_2 === 'Sí') {
+		  if (empty($_8)) {
+		    form_error($form['laboral']['8'], t('10. ¿Estabas trabajando antes de iniciar la capacitación del Proyecto de la USAID Alerta Joven?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8'] = '';
+		}
+		
+		
+// 		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí') {
+// 		  if (empty($_8_0)) {
+// 		    form_error($form['laboral']['8_0'], t('11. ¿Cambiaste de lugar de trabajo después de la capacitación de Alerta Joven?: Campo requerido'));
+// 		  }
+// 		} else {
+// 		  $form_state['values']['8_0'] = '';
+// 		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí') {
+		  if (empty($_8_1)) {
+		    form_error($form['laboral']['8_1'], t('11. ¿Consideras que tu trabajo actual es mejor que el anterior?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_1'] = '';
+		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_2)) {
+		    form_error($form['laboral']['8_2'], t('12. ¿Por qué considera que es un mejor empleo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_2'] = '';
+		}
+
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_3)) {
+		    form_error($form['laboral']['8_3'], t('13.1. ¿Qué haces en ese trabajo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_3'] = '';
+		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_4)) {
+		    form_error($form['laboral']['8_4'], t('13.2. ¿Cuánto tiempo tienes en este trabajo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_4'] = '';
+		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_5)) {
+		    form_error($form['laboral']['8_5'], t('13.3. ¿Este trabajo es...?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_5'] = '';
+		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_6)) {
+		    form_error($form['laboral']['8_6'], t('13.4. ¿Cuánto ganas en un mes?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_6'] = '';
+		}
+		
+		if(($_4 === 'Sí'|| $_4 === 'No') && $_8 === 'Sí' && $_8_1 === 'Sí') {
+		  if (empty($_8_7)) {
+		    form_error($form['laboral']['8_7'], t('13.5. ¿Qué tan de acuerdo estás con esta afirmación: "Tu participación en el curso técnico a través del Proyecto de la USAID Alerta Joven te ayudó a mejorar el trabajo"??: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['8_7'] = '';
+		}
+		
+		if (empty($_13)) {
+			form_error($form['credits']['13'], t('14. ¿Has recibido algún apoyo del Proyecto de la USAID Alerta Joven para montar o mejorar tu negocio?: Campo requerido'));
+		}
+		
+		if ($_13 === 'Sí') {
+		  if (empty($_15)) {
+		    form_error($form['credits']['15'], t('15. ¿Qué tipo de apoyo?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['15'] = '';
+		}
+				
+		if ($_13 === 'Sí') {
+		  if ($_15 === 'Monetario') {
+		    if (empty($_13_1)) {
+		      form_error($form['credits']['13_1'], t('15.1 ¿Cuánto recibiste?: Campo requerido'));
+		    } 
+		  } else {
+		    $form_state['values']['13_1'] = '';
+		  }
+		}
+				
+		if ($_13 === 'Sí') {
+		  if (empty($_14)) {
+		    form_error($form['credits']['14'], t('16. ¿Pudiste montar tu negocio después del apoyo recibido del Proyecto de la USAID Alerta Joven?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['14'] = '';
+		  $form_state['values']['16'] = '';
+		  $form_state['values']['17'] = '';
+		  $form_state['values']['13_2'] = '';
+		  $form_state['values']['14_1'] = '';
+		  		  
+		}
+		
+		if (empty($_14) || $_14 === 'No' || $_14 === '') {		  
+		  $form_state['values']['16'] = '';
+		  $form_state['values']['17'] = '';
+		  $form_state['values']['13_2'] = '';
+		  $form_state['values']['14_1'] = '';	
+		  		  
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Sí') {
+		  if (empty($_13_2)) {
+		    form_error($form['credits']['13_2'], t('16.1. ¿Cuánto vende o genera tu negocio mensualmente?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['13_2'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Sí') {
+		  if (empty($_14_2)) {
+		    form_error($form['credits']['14_2'], t('16.2. ¿Cuántos empleados tienes en el negocio/emprensa?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['14_2'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Sí') {
+		  if (empty($_14_1)) {
+		    form_error($form['credits']['14_1'], t('16.3. ¿A qué se dedica tu negocio?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['14_1'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Ya tenía un negocio') {
+		  if (empty($_16)) {
+		    form_error($form['credits']['16'], t('17. ¿Consideras que después del soporte del Proyecto USAID Alerta Joven tu negocio ha mejorado?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['16'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Ya tenía un negocio' && $_16 === 'Sí') {
+		  if (empty($_17)) {
+		    form_error($form['credits']['17'], t('18. ¿Cómo ha mejorado?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['17'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Ya tenía un negocio' && $_16 === 'Sí') {
+		  if (empty($_19)) {
+		    form_error($form['credits']['19'], t('19. ¿Cuánto vende o genera tu negocio mensualmente?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['19'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Ya tenía un negocio' && $_16 === 'Sí') {
+		  if (empty($_19_1)) {
+		    form_error($form['credits']['19_1'], t('19.1. ¿Cuántos empleados tienes en el negocio/emprensa?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['19_1'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_16 === 'Sí' && $_19_1 === "Otra cantidad") {
+		  if (empty($_19_1Cantidad)) {
+		    form_error($form['credits']['19_1Cantidad'], t('19.1. ¿Cuál cantidad?: Campo requerido'));
+		  }
+		} else {
+		  $form_state['values']['19_1Cantidad'] = '';
+		}
+		
+		if ($_13 === 'Sí' && $_14 === 'Ya tenía un negocio' && $_16 === 'Sí') {
+		  if (empty($_20)) {
+		    form_error($form['credits']['20'], t('20. ¿A qué se dedica tu negocio?: Campo requerido'));
+		  }
+		  
+		} else {
+		  $form_state['values']['20'] = '';
+		}
+		
+	} else {
+	    $form_state['values']['4_3'] = '';
+		$form_state['values']['4'] = '';
+		$form_state['values']['4_2'] = '';
+		$form_state['values']['4_1'] = '';
+		$form_state['values']['4_1Otro'] = '';
+		$form_state['values']['5'] = '';
+		$form_state['values']['6'] = '';
+		$form_state['values']['6Otro'] = '';
+		$form_state['values']['7'] = '';
+		$form_state['values']['7_1'] = '';
+		$form_state['values']['8'] = '';
+		$form_state['values']['8_1'] = '';
+		$form_state['values']['8_2'] = '';
+		$form_state['values']['8_2Otro'] = '';
+// 		$form_state['values']['8_0'] = '';
+		$form_state['values']['13'] = '';
+		$form_state['values']['13_1'] = '';
+		$form_state['values']['13_2'] = '';
+		$form_state['values']['14'] = '';
+		$form_state['values']['14_1'] = '';
+		$form_state['values']['15'] = '';
+		$form_state['values']['16'] = '';
+		$form_state['values']['17'] = '';	
+		$form_state['values']['19'] = '';
+		$form_state['values']['19_1'] = '';
+		$form_state['values']['20'] = '';	
+				
+	}
+	
+	if ($_4_3 === 'Otro') {
+	  if (empty($_4_3Otro)) {
+	    form_error($form['laboral']['4_3Otro'], t('1.1.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['4_3Otro'] = '';
+	}
+	
+	if ($_4_1 === 'Otro') {
+	  if (empty($_4_1Otro)) {
+	    form_error($form['laboral']['4_1Otro'], t('4.1.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['4_1Otro'] = '';
+	}
+
+	if ($_6 === 'Otro') {
+		if (empty($_6Otro)) {
+			form_error($form['laboral']['6Otro'], t('4.Otro (favor especificar): Campo requerido'));
+		}
+	} else {
+		$form_state['values']['6Otro'] = '';
+	}
+	
+	if ($_8_2 === 'Otro') {
+	  if (empty($_8_2Otro)) {
+	    form_error($form['laboral']['8_2Otro'], t('12.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['8_2Otro'] = '';
+	}
+	
+	if ($_8_3 === 'Otro') {
+	  if (empty($_8_3Otro)) {
+	    form_error($form['laboral']['8_3Otro'], t('13.1.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['8_3Otro'] = '';
+	}
+	
+	if ($_14_2 === 'Otro') {
+	  if (empty($_14_2Otro)) {
+	    form_error($form['credits']['14_2Otro'], t('16.2.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['14_2Otro'] = '';
+	}
+	
+	if ($_17 === 'Otro') {
+	  if (empty($_17_Otro)) {
+	    form_error($form['credits']['17_Otro'], t('18.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['17_Otro'] = '';
+	}
+	
+	if ($_20 === 'Otro') {
+	  if (empty($_20_Otro)) {
+	    form_error($form['credits']['20_Otro'], t('20.Otro (favor especificar): Campo requerido'));
+	  }
+	} else {
+	  $form_state['values']['20_Otro'] = '';
+	}
+	
+ }
+
+ /**
+  * Implements the hook_permissions
+  */
+ function ajlabor_permission() {
+	return array(
+		'access ajlabor content' => array(
+				'title' => t('Access content for ajlabor module'),
+				'description' => t('Control the access for the Labor Survey form'),
+		)
+	);
+ }
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajlabor_page() {
+	return drupal_get_form('ajlabor_form');
+}
+
+/**
+ * Script to insert the new form data
+ */
+function _ajlabor_insert_data(
+            $_0,    
+			$_1,
+            $_4_3,
+            $_4_3Otro,
+			$_4,
+            $_4_4,
+            $_4_5,
+            $_4_2,
+			$_4_1,
+            $_4_1Otro,
+			$_5,
+			$_6,
+			$_6Otro,
+			$_7,
+            $_7_1,
+			$_8,
+			$_8_1,
+            $_8_2,
+            $_8_2Otro,
+//             $_8_0,
+            $_8_3,
+            $_8_3Otro,
+            $_8_4,
+            $_8_5,
+            $_8_6,
+            $_8_7,
+            $_13,
+            $_13_1,
+            $_13_2,
+			$_14,
+            $_14_1,
+            $_14_1Otro,
+            $_14_2,
+            $_14_2Otro,
+            $_15,
+            $_16,
+            $_17,
+            $_17_Otro,
+            $_18,
+            $_19,
+            $_19_1,
+            $_19_1Cantidad,
+            $_20,
+            $_20_Otro,
+			$uuid,
+			$provider_id) {
+	
+	global $user;
+	$currentDate = format_date(time(), 'custom', 'Y-m-d H:i:s');
+	$fechaDeLlenado = format_date(strtotime($_0), 'custom', 'Y-m-d H:i:s');
+		
+	$tableFields =  array(
+		'user_name' => $user->name,
+	    '0_fechadellenado' => $fechaDeLlenado,	  
+		'1_HasparticipadoenalguncursodelproyectoAlerta' => $_1,
+	    '4_3Cualcursorealizaste' => $_4_3,
+	    '4_3Otrofavorespecificar' => $_4_3Otro,
+		'4_Actualmentetienesuntrabajoenel' => $_4,
+	    '4_4Nombredelaempresa' => $_4_4,
+	    '4_5Telefonodelaempresa' => $_4_5,
+	    '4_2Esestetuprimerempleo' => $_4_2,
+		'4_1Quehacesenesetrabajo' => $_4_1,
+	    '4_1Otrofavorespecificar' => $_4_1Otro,
+		'5_Cuantotiempotienesenestetrabajo' => $_5,
+		'6_Estetrabajoes' => $_6,
+		'6_Otrofavorespecificar' => $_6Otro,
+		'7_Cuantoganasenunasemana' => $_7,
+	    '7_1QueTanDeAcuerdoEstasConEstaAfirmacion' => $_7_1,
+		'8_Cuandoiniciasteelcursotecnicoyaestabas' => $_8,
+		'8_1Considerasquetutrabajoactual' => $_8_1,
+	    '8_2Porqueconsideraqueesunmejorempleo' => $_8_2,
+	    '8_2Otrofavorespecificar' => $_8_2Otro,
+	    '8_3QueHacesEnEseTrabajo' => $_8_3,
+	    '8_3Otrofavorespecificar' => $_8_3Otro,
+	    '8_4CuantoTiempoTienesEnEseTrabajo' => $_8_4,
+	    '8_5EsteTrabajoEs' => $_8_5,
+	    '8_6CuantoGanasEnUnMes' => $_8_6,
+	    '8_7QueTanDeAcuerdoEstasConEstaafirmacion' => $_8_7,
+	    // 	    '8_3Cambiastedelugardetrabajodespues' => $_8_0,	   
+		'13_Hasrecibidounprestamoatravesdelproyecto' => $_13,
+	    '13_1Quemontorecibiste' => $_13_1,
+	    '13_2Quemontogeneratunegociomensualmente' => $_13_2,
+		'14_Tienesunnegociopropio' => $_14,
+	    '14_1Aquesededicatunegocio' => $_14_1,
+	    '14_1Otro' => $_14_1Otro,
+	    '14_2CuantosEmpleadosEnTuEmpresa' => $_14_2,
+	    '14_2CuantosEmpleadosOtro' => $_14_2Otro,
+	    '15_Quetipodeapoyo' => $_15,
+	    '16_Siyateniasunnegocioconsiderasquedespuesdel' => $_16,
+	    '17_Comohamejorado' => $_17,
+	    '17_Otro' => $_17_Otro,
+	    '18_Quiencontactoalparticipante' => $_18,
+	    '19_Quemontogeneratunegociomensualmente' => $_19,
+	    '19_1CuantosEmpleadosEnTuEmpresa' => $_19_1,
+	    '19_1CuantosEmpleadosOtro' => $_19_1Cantidad,
+	    '20_Aquesededicatunegocio' => $_20,
+	    '20_Otro' => $_20_Otro,	    
+	);
+	
+// 	if(_ajlabor_alreadyExist($uuid)) { // Updating existing labor form
+// 		$tableFields['changed'] = $currentDate;
+// 		$labor_entry = db_update('aj_labor')->fields($tableFields)->condition('uuid', $uuid);
+// 	} else { // creating new labor form entry
+	    $tableFields['version'] = _ajlabor_getExistingLaborForm($uuid)['version'] + 1;
+		$tableFields['created'] = $currentDate;
+		$tableFields['uuid'] = $uuid;
+		$tableFields['provider_id'] = $provider_id;
+		$labor_entry = db_insert('aj_labor')->fields($tableFields);
+		$labor_entry->execute();
+// 	}
+	
+}
+
+/**
+ * Get the beneficiary info
+ */
+function _ajlabor_getBeneficiaryInfo($uuid) {
+
+	$query = db_select('aj_registration', 'reg');
+	$query->fields('reg', array('nombre', 'apellido', 'uuid'));
+	$query->condition('uuid', $uuid);
+	$query->orderBy('nombre', 'ASC');
+	$query->addExpression("DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), '%Y-%m-%d'), dob)), '%Y')+0", 'edad');
+	$query->range(0,1);
+
+	$result = $query->execute();
+	return $result->fetchAssoc();
+}
+
+/**
+ * Checks if the beneficiary meets the requierent to have a labor form entry
+ */
+function _ajbeneficiaryEligible($uuid) {
+	
+	$targetPrograms = [2, 3, 18, 22]; // Autoempleo, CTV, Microcréditos, La Compañía
+	
+	$query = db_query(
+			'SELECT uuid
+			FROM {aj_attendance}
+			JOIN {field_data_field_activity_program} on aj_attendance.activity_id = field_data_field_activity_program.entity_id
+			JOIN {field_data_field_program_name} on field_data_field_program_name.entity_id = field_data_field_activity_program.field_activity_program_target_id
+			JOIN {field_data_field_programname_name} on field_data_field_programname_name.entity_id = field_data_field_program_name.field_program_name_target_id
+			WHERE uuid = :uuid 
+				and field_data_field_programname_name.entity_id in (:targetPrograms)', 
+			array(':uuid' => $uuid,
+				  ':targetPrograms' => $targetPrograms
+			));
+	$result = $query->fetchField(0);
+
+	if ($result) {
+		return true;
+	}
+	
+	return false;
+}
+
+function _ajlabor_isEditable($uuid) {
+// 	$today6MonthsAgo = format_date(strtotime('3 months ago'), 'custom', 'Y-m-d H:i:s');
+	// 			and :today6MonthsAgo <= created
+// 	':today6MonthsAgo' => $today6MonthsAgo,
+
+	$query = db_query(
+			'SELECT uuid
+			FROM {aj_labor}
+			WHERE uuid = :uuid 
+			AND 
+			(4_Actualmentetienesuntrabajoenel = :4_Actualmentetienesuntrabajoenel
+			OR 8_1Considerasquetutrabajoactual = :8_1Considerasquetutrabajoactual
+			OR 14_Tienesunnegociopropio = :14_Tienesunnegociopropio
+			OR 16_Siyateniasunnegocioconsiderasquedespuesdel = :16_Siyateniasunnegocioconsiderasquedespuesdel)
+            GROUP BY uuid
+			HAVING MAX(version)',
+			array(':uuid' => $uuid,
+					':4_Actualmentetienesuntrabajoenel' => 'Sí',
+					':8_1Considerasquetutrabajoactual' => 'Sí',
+			        '14_Tienesunnegociopropio' => 'Sí',
+			        '16_Siyateniasunnegocioconsiderasquedespuesdel' => 'Sí'
+			));
+	
+	$result = $query->fetchField(0);
+	
+	if ($result) {
+		return false;
+	}
+	
+	return true;
+}
+
+function _ajlabor_getExistingLaborForm($uuid) {
+	$query = db_query(
+			'SELECT * 
+			FROM {aj_labor}
+			WHERE uuid = :uuid
+            AND version = (SELECT max(version) FROM {aj_labor} WHERE uuid = :uuid GROUP BY uuid)',
+			array(
+					':uuid' => $uuid
+			));
+	return $query->fetchAssoc();
+}
+
+/**
+ * Checks if a given uuid already has a labor entry in the database
+ */
+function _ajlabor_alreadyExist($uuid) {
+
+	$query = db_select('aj_labor', 'ajlabor');
+	$query->fields('ajlabor', array('uuid'));
+	$query->condition('uuid', $uuid);
+	$query->range(0,1);
+
+	$result = $query->execute();
+	$entry =  $result->fetchAssoc();
+
+	return !empty($entry);
+}

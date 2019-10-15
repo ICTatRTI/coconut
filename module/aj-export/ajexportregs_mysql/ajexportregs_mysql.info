@@ -1,0 +1,3 @@
+name = AJ Export Registrations Data from MYSQL to CSV
+description = Extracts registrations from MySQL and generates CSV files.
+core = 7.x

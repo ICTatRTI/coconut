@@ -1,0 +1,258 @@
+<?php
+/**
+ * @file
+ * Install module for couchDB ETL process. Creates the couchDB tables.
+ */
+
+// TBD: Move schema definitions in external files
+//require_once ( dirname(__FILE__) . '/regschema.inc'); //
+
+
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
+function ajallregs_schema() {
+
+  $schema['aj_all_regs'] = array(
+      'description' => 'AJ registration form entered in CouchDB.',
+      'fields' => array(
+        'id' => array(
+          'description' => 'The primary identifier.',
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE),
+        '_id' => array(
+          'description' => 'CouchDB document id.',
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''),
+        '_rev' => array(
+          'description' => 'CouchDB revision.',
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => ''),
+        'createdAt' => array(
+           'description' => 'CouchDb created date',
+           'type' => 'varchar',
+            'length' => 255,
+            'not null' => FALSE,
+            'default' => ''),
+         'lastModifiedAt' => array(
+             'description' => 'CouchDb last modified date',
+             'type' => 'varchar',
+            'length' => 255,
+            'not null' => FALSE,
+            'default' => ''),
+        'provider_id' => array(
+           'description' => 'Provider Id.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'provider_name' => array(
+           'description' => 'Provider name.',
+           'type' => 'varchar',
+           'length' => 500,
+           'not null' => FALSE,
+           'default' => ''),
+       'question' => array(
+           'description' => 'Provider name.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'user_name' => array(
+           'description' => 'User name who entered the data.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'uuid' => array(
+           'description' => 'Universal unique id.',
+           'type' => 'varchar',
+           'length' => 30,
+           'not null' => TRUE,
+           'default' => ''),
+        'created' => array(
+          'description' => 'The Unix timestamp when the record was created.',
+          'mysql_type' => 'datetime',
+          'not null' => TRUE),
+        'changed' => array(
+          'description' => 'The Unix timestamp when the record was updated.',
+          'mysql_type' => 'datetime',
+          'not null' => FALSE),
+        'Fecha' => array(
+           'description' => 'Fecha.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Apellido' => array(
+           'description' => 'Apellido.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Apodo' => array(
+           'description' => 'Apodo.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Año' => array(
+           'description' => 'Año.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'BarrioComunidad' => array(
+           'description' => 'BarrioComunidad.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Calleynumero' => array(
+           'description' => 'Calleynumero.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Casa' => array(
+           'description' => 'Apodo.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Celular' => array(
+           'description' => 'Celular.',
+           'type' => 'varchar',
+           'length' => 80,
+           'not null' => FALSE,
+           'default' => ''),
+        'Completado' => array(
+           'description' => 'Apodo.',
+           'type' => 'varchar',
+           'length' => 10,
+           'not null' => FALSE,
+           'default' => ''),
+        'Direccióndecorreoelectrónico' => array(
+           'description' => 'Apodo.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Día' => array(
+           'description' => 'Día.',
+           'type' => 'varchar',
+           'length' => 16,
+           'not null' => FALSE,
+           'default' => ''),
+        'Mes' => array(
+           'description' => 'Mes.',
+           'type' => 'varchar',
+           'length' => 30,
+           'not null' => FALSE,
+           'default' => ''),
+        'Municipio' => array(
+           'description' => 'Municipio.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Nombre' => array(
+           'description' => 'Nombre.',
+           'type' => 'varchar',
+           'length' => 500,
+           'not null' => FALSE,
+           'default' => ''),
+        'Nombredepersonadecontacto' => array(
+           'description' => 'Nombredepersonadecontacto.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'NombredeusuariodeFacebook' => array(
+           'description' => 'NombredeusuariodeFacebook.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Parentescoopersonarelacionada' => array(
+           'description' => 'Parentescoopersonarelacionada.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Provincia' => array(
+           'description' => 'Provincia.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Teléfono' => array(
+           'description' => 'Teléfono.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+        'Estecolateralparticipante' => array(
+           'description' => 'Estecolateralparticipante.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'Tieneunadireccióndecorreoelectrónico' => array(
+           'description' => 'Tieneunadireccióndecorreoelectrónico.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'TieneunnombredeusuariodeFacebook' => array(
+           'description' => 'TieneunnombredeusuariodeFacebook.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'Tieneunnumerocelular' => array(
+           'description' => 'Tieneunnumerocelular.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+        'Tieneunnumerodetelefonoenlacasa' => array(
+           'description' => 'Tieneunnumerodetelefonoenlacasa.',
+           'type' => 'varchar',
+           'length' => 20,
+           'not null' => FALSE,
+           'default' => ''),
+         'Sexo' => array(
+            'description' => 'Tieneunnumerodetelefonoenlacasa.',
+            'type' => 'varchar',
+            'length' => 1,
+            'not null' => FALSE,
+            'default' => ''),
+
+
+       ),
+      'indexes' => array(
+                'ajallregs_created'        => array('created'),
+                'ajallregs__id'            => array('_id'),
+                'ajallregs_uuid'           => array('uuid'),
+                'ajallregs_provider_id'    => array('provider_id'),
+                'ajallregs_lastModifiedAt' => array('lastModifiedAt'),
+                'ajallregs_createdAt'      => array('createdAt'),
+                'ajallregs_Apelido'        => array('Apellido'),
+                'ajallregs_Nobre'          => array('Nombre'),
+                'ajallregs_Sexo'          => array('Sexo'),
+               
+        ),
+      'unique keys' => array(
+        'id' => array('id')
+        ),
+      'primary key' => array('id'),
+    );
+
+  return $schema;
+}

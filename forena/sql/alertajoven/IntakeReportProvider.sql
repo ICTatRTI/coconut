@@ -18,5 +18,8 @@ and entity.bundle = 'provider'
 --IF=:startdate
 and survey.createdAt >= :startdate
 --END
+--IF=:to_date
+and survey.createdat <= :to_date
+--END
 group by entity.field_agency_name_value
 WITH ROLLUP

@@ -1,6 +1,7 @@
 --ACCESS=access content
-SELECT 'both' AS 'code', 'All' AS 'name' 
+SELECT 'both' AS 'code', 'Ambos' AS 'name' 
 UNION ALL 
-SELECT 'collateral', 'Collateral only'
+SELECT 'nonCollateral', 'Directo'
 UNION ALL 
-SELECT 'nonCollateral', 'Non-Collateral only'
+SELECT 'collateral', 'Indirecto'
+

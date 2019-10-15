@@ -1,0 +1,6 @@
+name = AJ Organization Dashboard
+description = This shows an overview of the Organization status. This should be a View instead of a Form, but the View API is very limited
+core = 7.x
+php = 5.2
+;
+configure =	admin/config/content/ajorganizationprofile

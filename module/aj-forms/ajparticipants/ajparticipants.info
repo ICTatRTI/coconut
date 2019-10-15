@@ -1,0 +1,5 @@
+name = AJ Participants Form
+description = Implementation of the List of Participants
+core = 7.x
+;
+configure =	admin/config/content/ajparticipants

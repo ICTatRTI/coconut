@@ -89,8 +89,14 @@ function ajetlexit_schema() {
            'length' => 20,
            'not null' => FALSE,
            'default' => ''),
-	 '9AOtro' => array(
+      '9APorQueNoTienesActaDeNacimiento' => array(
            'description' => '9A. Si no, ¿cuál es la razón principal por la que no tienes un acta? Marca sólo una opción.',
+           'type' => 'varchar',
+           'length' => 255,
+           'not null' => FALSE,
+           'default' => ''),
+	 '9AOtro' => array(
+           'description' => '9A. Si no, ¿cuál es la razón principal por la que no tienes un acta? OTRO.',
            'type' => 'varchar',
            'length' => 255,
            'not null' => FALSE,

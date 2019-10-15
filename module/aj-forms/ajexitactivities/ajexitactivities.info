@@ -1,0 +1,5 @@
+name = AJ Exit Activities Form
+description = Form for creating Exit Activities
+core = 7.x
+;
+configure =	admin/config/content/ajexitactivities

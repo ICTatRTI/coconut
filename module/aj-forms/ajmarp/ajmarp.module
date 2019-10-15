@@ -1,0 +1,264 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajmarp_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajmarp":
+			return '<p>' . t("Form to submit MARP population data") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajmarp_menu() {
+	$items = array();
+
+	$items['ajmarp'] = array(
+		'title' => 'MARP form',
+		'description' => 'Form to collect data from MARP population',
+		'page callback' => '_ajmarp_page',
+    	'page arguments' => array('ajmarp_form'),
+		'access arguments' => array('access ajmarp content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+ /**
+  *  Page callback: Current users settings
+  *  @see current_users_menu()
+  */
+function ajmarp_form($form, &$form_state) {
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+
+	$beneficiary = _ajmarp_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
+	$label = '<p>Seleccione la categoría MARP para <b>'.$beneficiaryDetails.'</b></p>';
+
+	if (_ajmarp_alreadyExist($uuid)) {
+		drupal_set_message(t('Ya existe un formulario MARP disponible para <b>'.$beneficiaryDetails.'</b>'), 'warning');
+		 $form['actions']['cancel'] = array(
+  		  '#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+ 		 );
+		return $form;
+	}
+
+	
+	if (_aj_exit_($uuid)) {
+		
+		drupal_set_message(t('Ya existe un Formulario de Salida disponible para <b>'.$beneficiaryDetails.'</b>. No se puede editar este contacto'), 'warning');
+		$form['actions']['cancel'] = array(
+				'#markup' => l(t('Volver a Lista de Beneficiarios'), 'mis-beneficiarios'),
+		);
+		return $form;
+	}
+	$radioOptions = array(
+			1 => t('Hombres que tienen sexo con Hombres'),
+			2 => t('Los/as trabajadores/as del sexo'),
+			3 => t('Usuarios/as de drogas intravenosas')
+			);
+
+	$form['some_text'] = array(
+	  '#markup' => $label
+	);
+
+	$form['marp_category'] = array(
+			'#type' => 'checkboxes',
+			'#title' => t('Categoría MARP: '),
+			'#description' => t('Indique la categoría MARP'),
+			'#options' => $radioOptions,
+			'#required' => TRUE,
+	);
+
+	$form['actions'] = array('#type' => 'actions');
+
+	$form['actions']['cancel'] = array(
+		'#type' => 'submit',
+		'#prefix' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+			<div style="display: inline-block; width: 200px;" class = "remove"><br>',
+		'#sufix' => '</div> <br>',
+		'#value' => t('Cancelar'),
+		'#limit_validation_errors' => array(),
+		'#submit' => array('ajregistration_form_submit'),
+		'#weight' => 100,
+	);
+
+	$form['actions']['submit'] = array(
+		'#type' => 'submit',
+		'#prefix' => '',
+		'#sufix' => '',
+		'#value' => t('Guardar'),
+		'#weight' => 100,
+	);
+
+	return $form;
+}
+
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function ajmarp_form_submit($form, &$form_state) {
+
+	if ( $form_state['clicked_button']['#value'] === 'Cancelar' ) {
+		drupal_set_message('Formulario descartado', 'warning');
+		$form_state['redirect'] = 'mis-beneficiarios';
+		return;
+	}
+
+	$urlParams = drupal_get_query_parameters();
+	$uuid = $urlParams['uuid'];
+	$provider_id = $urlParams['provider_id'];
+
+	$beneficiary = _ajmarp_getBeneficiaryInfo($uuid);
+	$beneficiaryDetails = $beneficiary['nombre'].' '.$beneficiary['apellido'].' ('.$uuid.')';
+
+	_ajmarp_insert_data(
+			$form_state['values']['marp_category'],
+			$uuid,
+			$provider_id);
+
+	drupal_set_message('El formulario MARP ha sido guardado satisfactoriamente para <b> '.$beneficiaryDetails.'</b>!');
+
+	$form_state['redirect'] = 'mis-beneficiarios';
+
+}
+
+/**
+ *	Implements validation from the Form API.
+ *
+ * @param $form
+ *   A structured array containing the elements and properties of the form.
+ * @param $form_state
+ *   An array that stores information about the form's current state
+ *   during processing.
+ */
+ function ajmarp_form_validate($form, &$form_state) {
+// 	$activity_date =  $form_state['values']['field_activity_date']['und'][0]['value'];
+// 	$now = date('Y-m-d', time());
+
+// 	// Check if the date is empty
+// 	if (($activity_date === null || $activity_date === '')) {
+// 		form_set_error('field_activity_date', t('The activity date can\'t be empty'));
+// 	}
+
+// 	// Check if the date is valid and has the right format
+// 	if (is_string($activity_date) && strtotime($activity_date) === FALSE) {
+// 		form_set_error('field_activity_date', t('The activity date has incorrect format. See the example below'));
+// 	}
+
+// 	// Check if date is no later than today
+// 	if (is_string($activity_date) && strncmp($activity_date, $now, 10) > 0 ) {
+// 		form_set_error('field_activity_date', t('The activity date can\'t be later than today'));
+// 	}
+
+ }
+
+
+ /**
+  * Implements the hook_permissions
+  */
+ function ajmarp_permission() {
+	return array(
+		'access ajmarp content' => array(
+				'title' => t('Access content for ajmarp module'),
+				'description' => t('Control the access for the MARP form'),
+		)
+	);
+ }
+
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajmarp_page() {
+	return drupal_get_form('ajmarp_form');
+}
+
+/**
+ * Create the new activity entity instance
+ */
+function _ajmarp_insert_data(
+			$marp_category,
+			$uuid,
+			$provider_id) {
+
+	global $user;
+	$currentDate = format_date(time(), 'custom', 'Y-m-d H:i:s');
+
+	$tableFields =  array(
+ 		'createdAt' => $currentDate,
+ 		'lastModifiedAt' => $currentDate,
+		'provider_id' => $provider_id,
+		'user_name' => $user->name,
+		'uuid' => $uuid,
+		'created' => $currentDate,
+	);
+
+	foreach ($marp_category as $category){
+		switch ($category) {
+			case 1:
+				$tableFields['Hombresquetienensexoconhombres'] = 'true';
+				break;
+			case 2:
+				$tableFields['Lostrabajadoresdelsexo'] =  'true';
+				break;
+			case 3:
+				$tableFields['Usuariosdedrogasintravenosas' ] =  'true';
+				break;
+		}
+	}
+
+	$marp_entry = db_insert('aj_marp')
+	->fields($tableFields);
+	$marp_entry->execute();
+
+}
+
+
+/**
+ * Get the beneficiary info
+ */
+function _ajmarp_getBeneficiaryInfo($uuid) {
+
+	$query = db_select('aj_registration', 'reg');
+	$query->fields('reg', array('nombre'));
+	$query->fields('reg', array('apellido'));
+	$query->fields('reg', array('uuid'));
+	$query->condition('uuid', $uuid);
+	$query->orderBy('nombre', 'ASC');
+	$query->range(0,1);
+
+	$result = $query->execute();
+	return $result->fetchAssoc();
+}
+
+/**
+ * Checks if a fiven uuid already has a marp entry in the database
+ */
+function _ajmarp_alreadyExist($uuid) {
+
+	$query = db_select('aj_marp', 'marp');
+	$query->fields('marp', array('uuid'));
+	$query->condition('uuid', $uuid);
+	$query->range(0,1);
+
+	$result = $query->execute();
+	$entry =  $result->fetchAssoc();
+
+	return !empty($entry);
+}

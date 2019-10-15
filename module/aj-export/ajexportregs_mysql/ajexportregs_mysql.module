@@ -1,0 +1,295 @@
+<?php
+/**
+ * @file
+ * A chron module to create custom tables and load data from MySQL into these tables.
+ */
+
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
+/**
+* Cron job is creating the queue cron job.
+*
+*/
+function ajexportregs_mysql_cron() {
+
+	load_export_regs_worker_mysql();
+//   $queue = DrupalQueue::get('ajexportregs_mysql');
+//   $queue->createItem(0);
+}
+
+	
+/**
+* Cron jobs info.
+*
+* @return array
+*/
+function ajexportregs_mysql_cron_queue_info()
+{
+//     $queues = array();
+
+    $queues['ajexportregs_mysql'] = array(
+        'worker callback' => 'load_export_regs_worker_mysql',
+        'time' => 1, // time in seconds, this is the duration that the job will be CALLED, e.g.
+    // after it finish it will be called again until the time is up.
+    );
+
+   return $queues;
+}
+
+/**
+ * The queue job worker.
+ *
+ */
+function load_export_regs_worker_mysql()
+{
+
+ try{
+    ajetllog_log("ajexportregs_mysql", "MESSAGE", "PROCESSING STARTED");
+    watchdog('ajexportregs_mysql', 'Export regs from mysql started');
+    $linesAry = array();
+
+    ajexportregs_setModuleVariables();
+    $regKeys = variable_get("ajRegKeys");
+
+    $query = db_query(
+    		'SELECT distinct
+			    aj_registration.provider_id as OrganizaciónID,
+			    field_agency_name_value as OrganizaciónNombre,
+			    aj_registration.uuid,
+			    aj_registration.Fecha,
+			    aj_registration.Nombre,
+			    aj_registration.Apellido,
+			    aj_registration.Apodo,
+			    aj_registration.Calleynumero,
+			    aj_registration.BarrioComunidad,
+			    aj_registration.Municipio,
+			    aj_registration.Provincia,
+			    aj_registration.DOB as FechaNacimiento,
+			    aj_registration.Año,
+			    aj_registration.Mes,
+			    aj_registration.Día,
+			    aj_registration.Sexo,
+			    aj_registration.Tieneunnumerocelular,
+			    aj_registration.Celular,
+			    aj_registration.Tieneunnumerodetelefonoenlacasa,
+			    aj_registration.Casa,
+			    aj_registration.Tieneunadireccióndecorreoelectrónico,
+			    aj_registration.Direccióndecorreoelectrónico,
+			    aj_registration.TieneunnombredeusuariodeFacebook,
+			    aj_registration.NombredeusuariodeFacebook,
+			    aj_registration.Nombredepersonadecontacto,
+			    aj_registration.Parentescoopersonarelacionada,
+			    aj_registration.Teléfono,
+			    aj_registration.Estecolateralparticipante as Indirecto,
+			    aj_registration.8institucion as IndirectoInstitución,
+			    aj_registration.8funcion as IndirectoFunción,
+			    aj_registration.createdAt as FechaCreación,
+			    aj_registration.lastModifiedAt as FechaModificación,
+			    aj_registration.user_name as UsuarioCreador
+			FROM bitnami_drupal7.aj_registration
+			join bitnami_drupal7.field_data_field_agency_name on (provider_id = entity_id)
+    		where uuid != :uuid and provider_id != :provider_id
+    		order by provider_id',
+    		array(':uuid' => '', ':provider_id' => '')
+    );
+    
+    $entry =  $query->fetchAllAssoc('uuid');
+    $numRows = sizeof($entry);
+    ajetllog_log("ajexportregs_mysql", "MESSAGE", "Registration rows fetched:".$numRows);
+    watchdog('ajexportregs_mysql', 'Total of registrations '. $numRows);
+    
+    $line = ajexportregs_writeHeader();
+    array_push($linesAry, $line);
+
+    $providerIds = array();
+
+ 		foreach ($entry as $row) {
+ 			$rowAsArray = (array)$row;
+ 			// save provider id
+            if (!array_key_exists($rowAsArray['OrganizaciónID'], $providerIds)) {
+                    $providerIds[$rowAsArray['OrganizaciónID']] = $rowAsArray['OrganizaciónID'];
+            }
+
+            // convert document to CSV line
+            $line = ajexportregs_Doc2CSVLine($rowAsArray);
+
+            // push to the final array
+            array_push($linesAry, $line);
+        }
+
+     // export all data
+     ajexportregs_generateAllData($linesAry);
+
+     // export data by provider
+     ajexportregs_generateDataByProvider($providerIds, $linesAry);
+
+    // clean
+    ajexportregs_deleteModuleVariables();
+    
+    ajetllog_log("ajexportregs_mysql", "MESSAGE", "Registrations data successfully exported.");
+ }catch(Exception $e){
+     ajetllog_log("ajexportregs_mysql", "ERROR", $e->getMessage());
+ }
+}
+
+
+/**
+ * Export all data to CSV.
+ *
+ * @param $lineAry
+ *
+ */
+function ajexportregs_generateAllData($linesAry){
+    // convert array to string
+    $data = implode("\r\n", $linesAry);
+
+    // dump data to the file
+    ajexportregs_generateFile(null,$data);
+}
+
+
+/**
+ * Export all data to CSV.
+ *
+ * @param $lineAry
+ *
+ */
+function ajexportregs_generateDataByProvider($providerIds, $linesAry){
+    $lineAryByProvider = array();
+
+    // push the header
+    foreach ($providerIds as $pId) {
+        $lineAryByProvider[$pId] = array();
+        array_push($lineAryByProvider[$pId],$linesAry[0]);
+    }
+
+        // skip the header and start from the 2nd element
+        for($i = 1; $i < sizeof($linesAry); $i++) {
+            $lnAry = explode(',', $linesAry[$i]);
+
+            // remove "" from provider id
+            $id = $lnAry[0];
+
+            if ($id == "" || $id == null)
+                continue;
+
+            // push the line into the array
+            if (array_key_exists($id, $lineAryByProvider)) {
+                array_push($lineAryByProvider[$id], $linesAry[$i]);
+            }
+
+        }
+
+        foreach($lineAryByProvider as $providerId=>$lines) {
+
+            // convert array to string
+            $data = implode("\r\n", $lines);
+
+            // dump data to the file
+            ajexportregs_generateFile($providerId, $data);
+        }
+}
+
+/**
+ * Writes header line for the CSV file.
+ */
+function ajexportregs_writeHeader(){
+    $regKeys = variable_get("ajRegKeys");
+    $line = "";
+
+    // write header
+    foreach ($regKeys as $key) {
+            $line = $line. $key. ", ";
+    }
+   return $line;
+}
+
+
+/**
+ * Write document to csv line.
+ *
+ * @param $doc
+ * @return string
+ */
+function ajexportregs_Doc2CSVLine($doc){
+    $regKeys = variable_get("ajRegKeys");
+    $line = "";
+
+    foreach ($regKeys as $key) {
+            $line = $line.(str_replace(',',' ',$doc[$key])). ', ';
+    }
+
+    return $line;
+}
+
+/**
+ * Generates the CSV file. The location for the file is
+ *
+ *      apps\drupal\htdocs\sites\default\files\ajexport
+ *
+ * param array() $lines
+ *      int $save_mode
+ *    File save mode from drupal core, ex FILE_EXISTS_REPLACE
+ */
+function ajexportregs_generateFile($pId, $data, $save_mode = FILE_EXISTS_REPLACE) {
+    try{
+        if ($pId != null)
+          $uri  =  'public://ajexport/AJRegistrations_'.$pId.'.csv';
+        else
+          $uri  =  'public://ajexport/AJRegistrations.csv';
+
+        //Need to remove the filename from the uri
+        $uri_target = file_uri_target($uri);
+        $uri_scheme = file_uri_scheme($uri);
+        $uri_path_info = pathinfo($uri_target);
+
+        $directory = file_stream_wrapper_uri_normalize($uri_scheme . "://" . $uri_path_info['dirname']);
+
+        if(file_prepare_directory($directory, FILE_CREATE_DIRECTORY)) {
+            $path = file_stream_wrapper_uri_normalize($uri);
+            $new_file = file_save_data(utf8_decode($data), $path, $save_mode);
+        } else {
+            ajetllog_log("ajexportregs", "ERROR", "ajexportregs Could not create directory");
+        }
+    }catch(Exception $e){
+        ajetllog_log("ajexportregs", "ERROR", $e->getMessage());
+    }
+}
+
+
+/**
+ *
+ * Use variable_set() to set module global variables.
+ *
+ *
+ */
+function ajexportregs_setModuleVariables()
+{
+    try{
+      // retrieve aj-registration table columns
+        $regKeys = array("OrganizaciónID","OrganizaciónNombre","uuid","Fecha","Indirecto","Nombre","Apellido","Apodo","Calleynumero","BarrioComunidad","Municipio",
+        				"Provincia","FechaNacimiento","Año","Mes","Día","Sexo","Tieneunnumerocelular","Celular","Tieneunnumerodetelefonoenlacasa","Casa","Tieneunadireccióndecorreoelectrónico",
+        				"Direccióndecorreoelectrónico","TieneunnombredeusuariodeFacebook","NombredeusuariodeFacebook","Nombredepersonadecontacto","Parentescoopersonarelacionada",
+        				"Teléfono","IndirectoInstitución", "IndirectoFunción", "FechaCreación","FechaModificación","UsuarioCreador");
+        
+      // set the columns as variable
+      variable_set("ajRegKeys", $regKeys);
+    }catch(Exception $e){
+        ajetllog_log("ajexportregs", "ERROR", $e->getMessage());
+    }
+}
+/**
+ * Implement hook_enable()
+ */
+function ajexportregs_enable() {
+
+}
+
+/**
+ * Delete module variables.
+ */
+function ajexportregs_deleteModuleVariables(){
+    variable_del("ajRegKeys");
+
+}

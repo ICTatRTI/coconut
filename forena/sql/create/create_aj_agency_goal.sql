@@ -1,0 +1,21 @@
+CREATE TABLE `aj_agency_goal` (
+  `agency_id` int(10) unsigned NOT NULL COMMENT 'Organization ID',
+  `total` int(10) unsigned DEFAULT '0' COMMENT 'Meta total de participantes únicos atendidos',
+  `11_14_total` int(10) unsigned DEFAULT '0' COMMENT 'Meta por grupo de edad 11 a 14',
+  `18_24_total` int(10) unsigned DEFAULT '0' COMMENT 'Meta por grupo de edad 18 a 24',
+  `2` int(10) unsigned DEFAULT '0' COMMENT 'Autoempleo',
+  `3` int(10) unsigned DEFAULT '0' COMMENT 'Capacitacion Tecnica',
+  `4` int(10) unsigned DEFAULT '0' COMMENT 'Documentacion',
+  `7` int(10) unsigned DEFAULT '0' COMMENT 'Espacio para Crecer',
+  `10` int(10) unsigned DEFAULT '0' COMMENT 'Colocados en empleo o pasantia',
+  `11` int(10) unsigned DEFAULT '0' COMMENT 'Retencion escolar',
+  `12` int(10) unsigned DEFAULT '0' COMMENT 'Prevención SSR, ITS, VIH/SIDA',
+  `14` int(10) unsigned DEFAULT '0' COMMENT 'Servicios de salud',
+  `13` int(10) unsigned DEFAULT '0' COMMENT 'Pruebas VIH',
+  `15` int(10) unsigned DEFAULT '0' COMMENT 'Servicios a MARP',
+  `17` int(10) unsigned DEFAULT '0' COMMENT 'Insercion escolar',
+  `18` int(10) unsigned DEFAULT '0' COMMENT 'Microcredito',
+  `9_and_19` int(10) unsigned DEFAULT '0' COMMENT 'Mediadores + Reduccion de Crimen',
+  PRIMARY KEY (`agency_id`),
+  UNIQUE KEY `agency_id_UNIQUE` (`agency_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;

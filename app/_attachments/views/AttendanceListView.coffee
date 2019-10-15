@@ -8,6 +8,7 @@ class AttendanceListView extends Backbone.View
   initialize: (options) ->
     (@[key] = value for key, value of options)
     Coconut.resultCollection ?= new ResultCollectionWithCollateral()
+    @$el.append '<div id="reportloader"><marquee ALIGN="Top" LOOP="infinite"  DIRECTION="right" style="font-size:24px; color:#FF8000">Cargando el informe. Por favor espera ...</marquee></div>'
 
 
   filter: (event) ->
@@ -56,7 +57,9 @@ class AttendanceListView extends Backbone.View
 
     @searchRows = {}
 
+
     html = ""
+
     if "module" is Coconut.config.local.get("mode")
 
       # support for "/" character that might be part of the provider name; it's encoded as "#"
@@ -76,11 +79,12 @@ class AttendanceListView extends Backbone.View
     html += "<div id='attendanceForm' style='overflow:auto;'><table id='participants'>
           <thead>
             <tr>
-              <th></th>
+              <th>Ordenar por Cotejo</th>
               <th>UUID</th>
               <th>Fecha de Creación</th>
               <th>Apellido</th>
               <th>Nombre</th>
+              <th>Apodo</th>
               <th>Sexo</th>
               <th>Fecha de <br/>Nacimiento</th>
               <th>Barrio o Sector</th>
@@ -113,6 +117,7 @@ class AttendanceListView extends Backbone.View
       html += @createColumn(participantData.createdAt, participantData.uuid, true)
       html += @createColumn(participantData.Apellido, participantData.uuid, true)
       html += @createColumn(participantData.Nombre, participantData.uuid, true)
+      html += @createColumn(participantData.Apodo, participantData.uuid, true)
       html += @createColumn(participantData.Sexo, participantData.uuid, false)
       birthday = participantData.Día + "/" + participantData.Mes + "/" + participantData.Año
       html += @createColumn(birthday, participantData.uuid, false)
@@ -136,6 +141,32 @@ class AttendanceListView extends Backbone.View
       "bSort": true,
       "bFilter": false
     });
+
+    $.tablesorter.addParser
+      id: 'checkbox'
+      is: (s, table, cell) ->
+        v = $(cell).find('input[type=checkbox]').length > 0
+        v
+      format: (s, table, cell) ->
+        v = if $(cell).find('input:checked').length > 0 then 1 else 0
+        v
+      type: 'numeric'
+
+    sorting = [ [
+                  0
+                  1
+                ] ]
+    $('input[type="checkbox"]').change ->
+      $('#participants').trigger 'update'
+      return
+
+    sorter = $('#participants').tablesorter('headers': '0': 'sorter': 'checkbox')
+    sorter.bind 'sortStart', (sorter) ->
+      $('#participants').trigger 'update'
+      return
+
+    $('#participants').trigger 'sorton', [ sorting ]
+    $('#reportloader').hide();
 
     # make rows display in different colors
     #$('table tr').each (index, row) =>

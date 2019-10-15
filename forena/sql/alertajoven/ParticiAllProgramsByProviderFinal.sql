@@ -1,5 +1,15 @@
 -- ACCESS=access content
-SELECT provider.field_agency_name_value,provider.entity_id,reg.Nombre, reg.Apellido, reg.Sexo, reg.Provincia, reg.DOB, 
+SELECT provider.field_agency_name_value,
+		provider.entity_id,reg.Nombre, 
+		reg.uuid,
+		reg.Apellido, 
+		reg.Sexo, 
+		reg.Provincia, 
+		reg.DOB, 
+		DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
+  9Dóndenaciste,
+  9Dóndenacisteotro,
+  13Tieneshijos,
 
 SUM(case when pnamename.entity_id = 16 then 1 else 0 end) as 'N/A - No es parte de ningun programa',
 SUM(case when pnamename.entity_id = 1 then 1 else 0 end) as 'Alfabetizacion Adultos',
@@ -21,11 +31,13 @@ SUM(case when pnamename.entity_id = 19 then 1 else 0 end) as 'Reduccion de Crime
 SUM(case when pnamename.entity_id = 11 then 1 else 0 end) as 'Retencion escolar',
 SUM(case when pnamename.entity_id = 14 then 1 else 0 end) as 'Servicios de Salud',
 SUM(case when pnamename.entity_id = 15 then 1 else 0 end) as 'Servicios terapeuticos',
+case when reg.uuid in (select aj_survey.uuid from bitnami_drupal7.aj_survey) then 'Si' else 'No' end as 'Encuesta',
 
 COUNT(atten.uuid) as "Total"
 FROM
 	bitnami_drupal7.aj_attendance atten 
 join bitnami_drupal7. aj_registration reg ON reg.uuid = atten.uuid
+LEFT join bitnami_drupal7.aj_survey survey ON survey.uuid = atten.uuid
 join bitnami_drupal7.field_data_field_agency_name provider on provider.entity_id=atten.provider_id
 join bitnami_drupal7.field_data_field_activity_name aname on aname.entity_id=atten.activity_id
 join bitnami_drupal7.field_data_field_activity_date adate on adate.entity_id=atten.activity_id
@@ -36,11 +48,11 @@ join bitnami_drupal7.field_data_field_programname_name pnamename on pnamename.en
 
 where 1 = 1 
 -- and pp.field_program_provider_target_id = 24
-and pp.field_program_provider_target_id = :provider_id  
+and pp.field_program_provider_target_id in (:provider_id)  
 
 
  
---SWiTCH=:collateral
+--SWITCH=:collateral
 -- estecolateralparticipante can have 1 of 4 values: No, Si, No Sabe (which means Don't know), blank (which means no value, not set)
 --CASE=collateral
 and reg.Estecolateralparticipante = 'Si'

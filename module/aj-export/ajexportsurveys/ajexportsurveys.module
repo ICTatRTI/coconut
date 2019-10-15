@@ -1,0 +1,844 @@
+<?php
+/**
+ * @file
+ * A chron module to create custom tables and load data from CouchDb into these tables.
+ */
+
+error_reporting(E_ALL);
+ini_set("display_errors", 1);
+
+/**
+ * Cron job is creating the queue cron job.
+ *
+ */
+function ajexportsurveys_cron() {
+
+    $queue = DrupalQueue::get('ajexportsurveys');
+    $queue->createItem("arg1");
+}
+
+
+/**
+ * Cron jobs info.
+ *
+ * @return array
+ */
+function ajexportsurveys_cron_queue_info()
+{
+
+    $queues = array();
+
+    $queues['ajexportsurveys'] = array(
+        'worker callback' => 'load_export_surveys_worker',
+        'time' => 300, // time in seconds, this is the duration that the job will be CALLED, e.g.
+        // after it finish it will be called again until the time is up.
+    );
+
+
+    return $queues;
+}
+
+/**
+ * The queue job worker. Query registration from couchDB descending and load them into mySQL database.
+ *
+ */
+function load_export_surveys_worker()
+{
+    $SURVEYS_CHUNK_SIZE = 200;
+    $REGS_CHUNK_SIZE = 200;
+
+    try{
+        ajetllog_log("ajexportsurveys", "MESSAGE", "PROCESSING STARTED");
+
+        ajexportsurveys_setModuleVariables();
+        $regKeys = variable_get("ajRegKeys");
+        $surveyKeys = variable_get("ajSurveyKeys");
+
+        /*********************** Retrieve Registrations **************************/
+        $regLines = ajexportsurveys_getRegLines($regKeys, $REGS_CHUNK_SIZE);
+        $numRegs = sizeof($regLines);
+
+        /*********************** Retrieve Surveys by UUID **************************/
+        $surveyLines = ajexportsurveys_getSurveyLines($surveyKeys, $SURVEYS_CHUNK_SIZE);
+        $numSurveys = sizeof($surveyLines);
+
+        // append survey lines to registration lines
+        $linesAry = addSurveys2Regs($regLines, $surveyLines);
+
+        //free some memory
+        $regLines = array();
+        $surveyLines = array();
+
+        $numLines = sizeof($linesAry);
+
+        // write header line
+        $headerLine =ajexportsurveys_writeHeader($regKeys, $surveyKeys);
+
+        // add header line on the top
+        array_unshift($linesAry, $headerLine);
+
+        // generate all data
+        ajexporsurveys_generateAllData($linesAry);
+
+        // export data by provider
+        ajexportsurveys_generateDataByProvider(variable_get("ajProviderIds"), $linesAry);
+
+        // clean
+        ajexportsurveys_deleteModuleVariables();
+
+        ajetllog_log("ajexportsurveys", "MESSAGE", "*****Survey data successfully exported.");
+    }catch(Exception $e){
+        ajetllog_log("ajexportsurveys", "ERROR", $e->getMessage());
+
+    }
+}
+
+/**
+ * Export all data to CSV.
+ *
+ * @param $lineAry
+ *
+ */
+function ajexporsurveys_generateAllData($linesAry){
+    // convert array to string
+    $data = implode("\r\n", $linesAry);
+
+    //free some memory
+    $linesAry = array();
+
+    // dump data to the file
+    ajexportsurveys_generateFile(null,$data);
+
+}
+
+/**
+ * Export all data to CSV.
+ *
+ * @param $lineAry
+ *
+ */
+function ajexportsurveys_generateDataByProvider($providerIds, $linesAry){
+    $lineAryByProvider = array();
+
+    // push the header
+    foreach ($providerIds as $pId) {
+        $lineAryByProvider[$pId] = array();
+        array_push($lineAryByProvider[$pId],$linesAry[0]);
+    }
+
+
+
+    // skip the header and start from the 2nd element
+    for($i = 1; $i < sizeof($linesAry); $i++) {
+        $lnAry = explode(',', $linesAry[$i]);
+
+        // remove "" from provider id
+        $id = trim($lnAry[1], '"');
+
+        if ($id == "" || $id == null)
+            continue;
+
+        // push the line into the array
+        if (array_key_exists($id, $lineAryByProvider)) {
+            array_push($lineAryByProvider[$id], $linesAry[$i]);
+        }
+
+    }
+
+
+    foreach($lineAryByProvider as $providerId=>$lines) {
+
+        // convert array to string
+        $data = implode("\r\n", $lines);
+
+        // dump data to the file
+        ajexportsurveys_generateFile($providerId, $data);
+    }
+
+}
+
+/**
+ * Generates registration CSV lines.
+ *
+ * @param $regKeys
+ * @param $CHUNK_SIZE
+ * @return array
+ */
+function ajexportsurveys_getRegLines($regKeys, $CHUNK_SIZE){
+
+    // registration lines
+    $regLines = array();
+
+    // retrieve all registrations
+    $req_url = 'http://localhost:5984/coconut/_design/coconut/_view/resultsByQuestionAndCompleteWithCollateral?startkey=%22Participant%20Registration-es%3Atrue%3Az%22&endkey=%22Participant%20Registration-es%3Atrue%22&descending=true&include_docs=false';
+
+
+    // prepare the request options
+    $req_options = array(
+        'method' => 'GET',
+        'timeout' => 300.0,
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ));
+
+    // query couchdb data
+    $couch_response = drupal_http_request( $req_url, $req_options );
+
+    // decode to json objects
+    $rows = drupal_json_decode( $couch_response->data)['rows'];
+    $numRows = sizeof($rows);
+    ajetllog_log("ajexportsurveys", "MESSAGE", "****** Regs rows fetched:".$numRows);
+
+
+    $i = 0;
+    $docProcessed = 0;
+    $docIdsAry = array();
+    $providerIds = array();
+
+    foreach ( $rows as $one_row ){
+        array_push($docIdsAry,$one_row['id']);
+
+        $tempSize = sizeof($docIdsAry);
+        $cnt = $docProcessed + $tempSize;
+
+        if ( $i < $CHUNK_SIZE -1 && $cnt < $numRows -1  ) {
+            $i++;
+            continue;
+        }
+
+
+        // open all docs from this chunk
+        $allDocs = ajexportsurveys_openDocs($docIdsAry);
+        $docIdsAry = array();
+        $docProcessed += sizeof($allDocs);
+        $i = 0;
+
+        foreach ( $allDocs as $doc ) {
+
+            // save provider id
+            if(array_key_exists('provider_id', $doc['doc'])){
+                if (!array_key_exists($doc['doc']['provider_id'], $providerIds))
+                    $key = strval($doc['doc']['provider_id']);
+                $providerIds[$key] = $key;
+            }
+
+            // convert document to CSV line
+            $line = ajexportsurveys_Doc2CSVLine($regKeys,$doc['doc'], false);
+
+            // push to the final array
+            $regLines[$doc['doc']['uuid']]= $line;
+
+            //$result = ajexportsurveys_varDumpToString($doc['doc']);
+            //ajetllog_error("ajexportsurveys", "MESSAGE0000", "doc=", $result, "");
+        }
+
+        //if ($docProcessed > 500)
+          //  break;
+
+    }
+
+    // set the columns as variable
+    variable_set("ajProviderIds", $providerIds);
+
+    return $regLines;
+}
+
+
+/**
+ * Generates survey CSV lines.
+ *
+ * @param $surveyKeys
+ * @param $CHUNK_SIZE
+ */
+function ajexportsurveys_getSurveyLines($surveyKeys, $CHUNK_SIZE){
+
+// retrieve all registrations
+$req_url = 'http://localhost:5984/coconut/_design/coconut/_view/findCompleteSurveys?include_docs=false';
+
+
+// prepare the request options
+$req_options = array(
+    'method' => 'GET',
+    'timeout' => 300.0,
+    'headers' => array(
+        'Content-Type' => 'application/json'
+    ));
+
+// query couchdb data
+$couch_response = drupal_http_request( $req_url, $req_options );
+
+
+// decode to json objects
+$rows = drupal_json_decode( $couch_response->data)['rows'];
+
+$maxRows = sizeof($rows);
+
+ajetllog_log("ajexportsurveys", "MESSAGE", "******Surveys fetched:".$maxRows);
+$surveyLines = array();
+
+$i = 0;
+$docProcessed = 0;
+$docIdsAry = array();
+
+//load completed surveys ids by uuid
+foreach ( $rows as $one_row ){
+    // prepare the ids chunk
+    array_push($docIdsAry,$one_row['id']);
+    $tempSize = sizeof($docIdsAry);
+    $cnt = $docProcessed + $tempSize;
+
+    if ( $i < $CHUNK_SIZE -1 && $cnt < $maxRows -1  ) {
+        $i++;
+        continue;
+    }
+
+    // open all docs from this chunk
+    $allSurveyDocs = ajexportsurveys_openDocs($docIdsAry);
+    $docProcessed += sizeof($allSurveyDocs);
+    $docIdsAry = array();
+    $i = 0;
+
+
+    foreach ( $allSurveyDocs as $doc ) {
+        if (array_key_exists("uuid", $doc['doc'])) {
+            // convert document to CSV line
+            $line = ajexportsurveys_Doc2CSVLine($surveyKeys, $doc['doc'], true);
+
+            // push to the final array
+            $surveyLines[$doc['doc']['uuid']] = $line;
+        }
+    }
+
+    //if ($docProcessed > 100)
+      // break;
+
+}
+
+
+  return $surveyLines;
+}
+/**
+ *
+ * @param $docIds
+ */
+function ajexportsurveys_openDocs($docIds){
+    $req_url = "http://localhost:5984/coconut/_all_docs?keys=[";
+    $urlIds = "";
+    $start = true;
+
+    foreach($docIds as $id){
+        if ($start) {
+            $urlIds ='%22'.$id.'%22';
+            $start = false;
+        }else{
+            $urlIds =$urlIds.',%22'.$id.'%22';
+        }
+    }
+
+    $req_url = $req_url.$urlIds."]&include_docs=true";
+
+    // prepare the request options
+    $req_options = array(
+        'method' => 'GET',
+        'timeout' => 300.0,
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ));
+
+    // query couchdb data
+    $couch_response = drupal_http_request( $req_url, $req_options );
+
+    // decode to json objects
+    $rows = drupal_json_decode( $couch_response->data)['rows'];
+
+    $size = sizeof($rows);
+
+    //ajetllog_log("ajexportsurveys", "MESSAGE", "******Rows fetched FROM CHUNK:".$size);
+
+    return $rows;
+}
+
+function ajexportsurveys_varDumpToString($var) {
+    ob_start();
+    var_dump($var);
+    $result = ob_get_clean();
+    return $result;
+}
+
+/**
+ * Opens the document by Id and returns the JSON object.
+ *
+ * @param $id
+ */
+function ajexportsurveys_OpenRegById($id){
+    // TBD: changed hard coded localhost link
+    $req_url = 'http://localhost:5984/coconut/'.$id;
+
+    $req_options = array(
+        'method' => 'GET',
+        'headers' => array(
+            'Content-Type' => 'application/json'
+        ));
+
+    $couch_response = drupal_http_request( $req_url, $req_options );
+    $doc = drupal_json_decode( $couch_response->data);
+
+    return $doc;
+
+}
+
+/**
+ * Writes header line for the CSV file.
+ */
+function ajexportsurveys_writeHeader($regKeys, $surveyKeys){
+
+    $line = "";
+
+    // write header
+    $start = true;
+    foreach ($regKeys as $k=>$key) {
+        if ($start){
+            $start = false;
+            $line = $key;
+        }else {
+            $line = $line . "," . $key;
+        }
+    }
+
+    // add survey keys
+    foreach ($surveyKeys as $k=>$key) {
+       $line = $line . "," . $k;
+    }
+
+
+    $utf8_with_bom = chr(239) . chr(187) . chr(191) .$line;
+    return $utf8_with_bom;
+}
+
+
+/**
+ * Write document to csv line.
+ *
+ * @param $doc
+ * @return string
+ */
+function ajexportsurveys_Doc2CSVLine($keys, $doc, $isSurvey){
+    $line = "";
+    // support for children array data
+    $arrayDataStr = "";
+
+    $start = true;
+    foreach ($keys as $k=>$key) {
+        if (!array_key_exists($key, $doc)) {
+            $line = $line . ',';
+            continue;
+        }
+
+
+        if ($start){
+            $start = false;
+            $line = $doc[$key];
+        }else {
+            if ($isSurvey) {
+                if ($key == "Fechadenacimiento") {
+                    $arrayDataStr = ajexportsurveys_addArrayData($key, $doc);
+                    $line = $line . ',"' . $arrayDataStr . '"';
+                } else if ($key == "Ustedyellaniñoaviveenlamismacasa") {
+                    $arrayDataStr = ajexportsurveys_addArrayData($key, $doc);
+                    $line = $line . ',"' . $arrayDataStr . '"';
+                } else if ($key == "Sexo") {
+                    $arrayDataStr = ajexportsurveys_addArrayData($key, $doc);
+                    $line = $line . ',"' . $arrayDataStr . '"';
+                } else if ($key == "Esteniñotieneunactadenacimientodominicana") {
+                    $arrayDataStr = ajexportsurveys_addArrayData($key, $doc);
+                    $line = $line . ',"' . $arrayDataStr . '"';
+                } else
+                    $line = $line . ',"' . $doc[$key] . '"';
+            }else
+                $line = $line . ',"' . $doc[$key].'"';
+        }
+
+    }
+
+
+
+
+    $utf8_with_bom = chr(239) . chr(187) . chr(191) . $line;
+    return $utf8_with_bom;
+}
+
+
+/**
+ * Adds array data as comma separated values. The data are in format:
+ *
+ * "Fechadenacimiento": [
+ *      "2015-06-11",
+ *      "2014-09-02"
+ *      ]
+ *
+ * @param $key
+ * @param $doc
+ * @param $line
+ * @return string
+ */
+function ajexportsurveys_addArrayData($key, $doc){
+
+    $isStart = true;
+
+    $arrayStr = "";
+
+    // add children data if any exist
+    if (array_key_exists($key, $doc) ){
+        $childAry = $doc[$key];
+
+        foreach ($childAry as $val) {
+            if ($isStart) {
+                $arrayStr = $val;
+                $isStart = false;
+            } else
+                $arrayStr = $arrayStr . ',' . $val;
+
+        }
+
+
+        //if ($arrayStr != "")
+          //  ajetllog_log("ajexportsurveys", "MESSAGE", "INSIDE AddArrayData:id=".$doc['_id']."key=".$key." data =".$arrayStr);
+
+
+    }
+
+
+    return $arrayStr;
+}
+
+
+
+/**
+ * Iterates through the registration lines and adds survey lines.
+ *
+ * @param $regLines
+ * @param $surveyLines
+ */
+function addSurveys2Regs($regLines, $surveyLines){
+   $combinedLines = array();
+
+   foreach($regLines as $uuid=>$regLn){
+       if (array_key_exists($uuid, $surveyLines)){
+           $combinedLn = $regLn.','.$surveyLines[$uuid];
+           array_push($combinedLines, $combinedLn);
+       }
+   }
+
+    return $combinedLines;
+}
+
+
+/**
+ * Generates the CSV file. The location for the file is
+ *
+ *      apps\drupal\htdocs\sites\default\files\ajexport
+ *
+ * param array() $lines
+ *      int $save_mode
+ *    File save mode from drupal core, ex FILE_EXISTS_REPLACE
+ */
+function ajexportsurveys_generateFile($pId,$data, $save_mode = FILE_EXISTS_REPLACE) {
+    try{
+        if ($pId != null)
+            $uri  =  'public://ajexport/AJCombined_'.$pId.'.csv';
+        else
+            $uri  =  'public://ajexport/AJCombined.csv';
+
+        //Need to remove the filename from the uri
+        $uri_target = file_uri_target($uri);
+        $uri_scheme = file_uri_scheme($uri);
+        $uri_path_info = pathinfo($uri_target);
+
+        $directory = file_stream_wrapper_uri_normalize($uri_scheme . "://" . $uri_path_info['dirname']);
+
+        if(file_prepare_directory($directory, FILE_CREATE_DIRECTORY)) {
+            $path = file_stream_wrapper_uri_normalize($uri);
+            $new_file = file_save_data($data, $path, $save_mode);
+        } else {
+            ajetllog_log("ajexportsurveys", "ERROR", "ajexportsurveys Could not create directory");
+        }
+    }catch(Exception $e){
+        ajetllog_log("ajexportsurveys", "ERROR", $e->getMessage());
+    }
+}
+
+
+
+/**
+ *
+ * Use variable_set() to set module global variables.
+ *
+ *
+ */
+function ajexportsurveys_setModuleVariables()
+{
+    try{
+        // retrieve aj-registration table columns
+        $regKeys = array("uuid","provider_id","provider_name","createdAt","lastModifiedAt","user_name","Fecha","Apellido","Apodo","Año","Sexo","BarrioComunidad","Calleynumero","Casa","Celular","Completado","Direccióndecorreoelectrónico","Día","Mes",
+            "Municipio","Nombre","Nombredepersonadecontacto","NombredeusuariodeFacebook","Parentescoopersonarelacionada","Provincia","Teléfono","Estecolateralparticipante","Tieneunadireccióndecorreoelectrónico","TieneunnombredeusuariodeFacebook",
+            "Tieneunnumerocelular","Tieneunnumerodetelefonoenlacasa");
+
+        // set the columns as variable
+        variable_set("ajRegKeys", $regKeys);
+
+
+        $surveyFields = array(
+            "createdAt"=> "createdAt",
+            "lastModifiedAt"=> "lastModifiedAt",
+            "Fecha"=> "Fecha",
+            "9"=> "9Dóndenaciste",
+            "9Dóndenacisteotro"=> "9Dóndenacisteotro",
+            "10"=> "10Tienesunactadenacimientodominicana",
+            "11"=> "11Cuálestuidiomaprincipal",
+            "11IdiomaprincipalOtro"=> "11IdiomaprincipalOtro",
+            "12"=> "12Cuálestuestadocivil",
+            "13"=> "13Tieneshijos",
+            "Fechadenacimiento"=> "Fechadenacimiento",
+            "Sexo"=> "Sexo",
+            "Ustedyellaniñoaviveenlamismacasa"=> "Ustedyellaniñoaviveenlamismacasa",
+            "Esteniñotieneunactadenacimientodominicana"=> "Esteniñotieneunactadenacimientodominicana",
+            "14"=> "14Sabesleeryescribir",
+            "15"=> "15Cuáleselniveleducativomásaltoquehasaprobado",
+            "16"=> "16Actualmenteestasasistiendoa",
+            "16ACuáleselnombredetuescuela"=> "16ACuáleselnombredetuescuela",
+            "16ACuáleselnombredetuuniversidad"=> "16ACuáleselnombredetuuniversidad",
+            "16BQuégradoestascursandoactualmente"=> "16BQuégradoestascursandoactualmente",
+            "16B1Cuálnivel"=> "16B1Cuálnivel",
+            "16CEnquétandaasistes"=> "16CEnquétandaasistes",
+            "16CCuálnivel"=> "16CCuálnivel",
+            "16DAquétandaasistes"=> "16DAquétandaasistes",
+            "17"=> "17Enelúltimoañocuántasveceshasfaltadoalaescuelaporundíacompletosinexcusa",
+            "18"=> "18Enlosúltimos12meseshassidosuspendidoadelaescuela",
+            "19"=> "19ActualmenteestasasistiendoaalgúnprogramadeeducaciónparajóvenesyadultosMarcalaopciónqueaplique",
+            "20"=> "20Hasrepetidoalgúncursoenlaescuela",
+            "20A"=> "20ASilarespuestaesafirmativacuálescursos",
+            "21"=> "21Hascompletadoalgúncursotécnico",
+            "21A"=> "21ASilarespuestaesafirmativacuálescursos",
+            "22"=> "22Actualmentetededicasa",
+            "23"=> "23Hassidosuspendidoadelaescuelaalgunavez",
+            "24Megustaríaleermejor"=> "Megustaríaleermejor",
+            "24Megustaríamejorarenmatemáticas"=> "Megustaríamejorarenmatemáticas",
+            "24Megustaríamejorarenciencias"=> "Megustaríamejorarenciencias",
+            "24Megustaríaestarenlaescuela"=> "Megustaríaestarenlaescuela",
+            "24Megustaríahablarmejorelespañol"=> "Megustaríahablarmejorelespañol",
+            "24Megustaríahablarelinglés"=> "Megustaríahablarelinglés",
+            "24Megustaríasabermásacercadeempleos"=> "Megustaríasabermásacercadeempleos",
+            "24Megustaríaterminarlabásica"=> "Megustaríaterminarlabásica",
+            "24Megustaríaterminarelbachillerato"=> "Megustaríaterminarelbachillerato",
+            "24MegustaríairalaUniversidad"=> "MegustaríairalaUniversidad",
+            "24Megustaríallevarmemejorconmismaestros"=> "Megustaríallevarmemejorconmismaestros",
+            "24Megustaríasentirmemásseguroenlaescuela"=> "Megustaríasentirmemásseguroenlaescuela",
+            "24Megustaríamejorarmiscalificaciones"=> "Megustaríamejorarmiscalificaciones",
+            "24Notengoningunameta"=> "Notengoningunameta",
+            "24Otrasmetas"=> "Otrasmetas",
+            "25"=> "25Hasrealizadoalgunavezuntrabajoporpagaoganancia",
+            "26"=> "26Durantelaúltimasemanarealizastealgúntrabajoporpagaoganancia",
+            "26A"=> "26ADescribeloquehaceseneltrabajoactual",
+            "27Mes"=> "27Mes",
+            "27Año"=> "27Año",
+            "28"=> "28Enquélugarrealizasestetrabajo",
+            "28EnquélugarOtros"=> "28EnquélugarOtros",
+            "29"=> "29Cuántashorastrabajasenundía",
+            "30"=> "30Cuántosdíastrabajasenunasemana",
+            "31"=> "31Enpromediocuántoganasenunasemana",
+            "32"=> "32Enestetrabajotúeres",
+            "32OtroTúeres"=> "32OtroTúeres",
+            "33"=> "33Actualmenterealizasalgúntrabajoenelquenosetepagaonorecibesganancia",
+            "33A"=> "33ADescribeloquehacesenestetrabajo",
+            "34Mes"=> "34Mes",
+            "34Año"=> "34Año",
+            "35"=> "35Enquélugarrealizasestetrabajo",
+            "35EnquélugarrealizasestetrabajoOtros"=> "35EnquélugarrealizasestetrabajoOtros",
+            "36"=> "36Cuántashorastrabajasenundía",
+            "37"=> "37Cuántosdíastrabajasenunasemana",
+            "38"=> "38Enestetrabajotúeres",
+            "38EnestetrabajotúeresOtro"=> "38EnestetrabajotúeresOtro",
+            "39"=> "39Hasbuscadounnuevoomejorempleoenelúltimomes",
+            "40"=> "40Hasparticipadoenalgúnprogramadedesarrollodeempleo",
+            "41"=> "41Conquéfrecuenciatepreocupaservíctimadeladelincuenciaentubarrio",
+            "42"=> "42Conquéfrecuenciatepreocupaservíctimadeladelincuenciaentuescuelaouniversidad",
+            "43"=> "43Enquémedidatuvidahasidoafectadaporladelincuencia",
+            "44"=> "44Entuopiniónladelincuenciaesunproblemagraveentubarrio",
+            "45"=> "45Tepreocupalapresenciadepandillasentubarrio",
+            "46"=> "46Lapreocupaciónporladelincuenciaocrimenteimpiderealizarlascosasquedeseashacerentubarrio",
+            "47A"=> "47AUnpolicíameamenazóverbalmente",
+            "47B"=> "47BUnpolicíamecobródinerosinjustificación",
+            "47C"=> "47CUnpolicíamequitóalgoquemepertenecia",
+            "47D"=> "47DUnpolicíamemaltratófísicamente",
+            "48"=> "48Hassidotransportadoenunapatrullapolicialporunaredadaoporsospechadelapolicíahaciati",
+            "49"=> "49Hassidodetenidoporlapolicíaporalgúnmotivo",
+            "49A"=> "49ASucedióestoenlosúltimos12meses",
+            "50"=> "50HassidodetenidoporlaPolicíaacusadodecometeralgúndelito",
+            "50A"=> "50ASucedióestoenlosúltimos12meses",
+            "51"=> "51AlgunodetusamigoshasidodetenidoalgunavezporlaPolicía",
+            "52"=> "52Enlosúltimos12meseshastomadoalgodeunatiendasinpagarporella",
+            "53"=> "53Enlosúltimos12meseshasparticipadoenalgunapeleaoriña",
+            "54"=> "54Enlosúltimos12meseshasllevadouncuchillopuñalomachete",
+            "54ACasa"=> "54ACasa",
+            "54AEscuela"=> "54AEscuela",
+            "54ABarrio"=> "54ABarrio",
+            "55"=> "55Enlosúltimos12meseshasllevadounarmadefuego",
+            "55ACasa"=> "55ACasa",
+            "55AEscuela"=> "55AEscuela",
+            "55ABarrio"=> "55ABarrio",
+            "56"=> "56Enlosúltimos12meseshasvistoaalguienqueestabasiendoapuñaladocortadoobaleado",
+            "56ACasa"=> "56ACasa",
+            "56AEscuela"=> "56AEscuela",
+            "56ABarrio"=> "56ABarrio",
+            "57"=> "57Enlosúltimos12mesesalguientehaamenazadoconuncuchilloounapistola",
+            "57ACasa"=> "57ACasa",
+            "57AEscuela"=> "57AEscuela",
+            "57ABarrio"=> "57ABarrio",
+            "58"=> "58Enlosúltimos12mesesalguientehacortadooapuñaladotangravementequetuvistequeiraunmédico",
+            "58ACasa"=> "58ACasa",
+            "58AEscuela"=> "58AEscuela",
+            "58ABarrio"=> "58ABarrio",
+            "59"=> "59Enlosúltimos12mesesalguientehadisparadoconunarmadefuego",
+            "59ACasa"=> "59ACasa",
+            "59AEscuela"=> "59AEscuela",
+            "59ABarrio"=> "59ABarrio",
+            "60"=> "60Enlosúltimos12meseshasamenazadoaalguienconcortarleapuñalarleodispararle",
+            "60ACasa"=> "60ACasa",
+            "60AEscuela"=> "60AEscuela",
+            "60ABarrio"=> "60ABarrio",
+            "61"=> "61Enlosúltimos12meseshasamenazadoaalguienconuncuchillooarma",
+            "61ACasa"=> "61ACasa",
+            "61AEscuela"=> "61AEscuela",
+            "61ABarrio"=> "61ABarrio",
+            "62"=> "62Enlosúltimos12meseshascortadooapuñaladoaalguien",
+            "62ACasa"=> "62ACasa",
+            "62AEscuela"=> "62AEscuela",
+            "62ABarrio"=> "62ABarrio",
+            "63"=> "63Enlosúltimos12meseslehasdisparadoaalguien",
+            "63ACasa"=> "63ACasa",
+            "63AEscuela"=> "63AEscuela",
+            "63ABarrio"=> "63ABarrio",
+            "64"=> "64Enlosúltimos12meseshastenidoalgúnamigoomiembrodetufamiliaquelehandisparadocortadooapuñalado",
+            "65"=> "65Hasdañadoodestruidoapropósitoartículosquenotepertenecen",
+            "66"=> "66Algunavezhassidoatacadoorobado",
+            "67"=> "67Algunavezhasatacadoorobadoaalguien",
+            "68"=> "68Algunavezhassidosecuestrado",
+            "69"=> "69Algunavezhassecuestradoaalguien",
+            "70"=> "70AlgunavezhasrobadoalgodeunatiendaoalgoquenotepertenecíaqueteníaunvalormenordeRD200",
+            "71"=> "71AlgunavezharobadoalgodeunatiendaoalgoquenotepertenecíaqueteníaunvalormayordeRD200incluyendocarros",
+            "72"=> "72Algunavezhasvendidooayudadoavenderdrogas",
+            "73"=> "73Hasestadoinvolucradoenunapandilla",
+            "73A"=> "73AActualmenteestásinvolucradoenunapandilla",
+            "74"=> "74Compartestiempooterelacionasconmiembrosdeunapandilla",
+            "74ACasa"=> "74ACasa",
+            "74AEscuela"=> "74AEscuela",
+            "74ABarrio"=> "74ABarrio",
+            "75"=> "75Enlosúltimos12meseshashabladoocompartidoconalguienborrachoodrogado",
+            "76"=> "76Algunavezhastomadounabebidaalcohólicaunacopavasoenteronosólounsorbo",
+            "76A"=> "76AEnlosúltimos12meseshasconsumidoalcohol",
+            "76B"=> "76BEnlosúltimos12meseshastomadocincovasoscopasomásdebebidasalcohólicasenelmismodía",
+            "77"=> "77Hasprobadoalgunavezcualquieradeestasdrogasmarihuanacocaínaheroínapastillascrackcementoocualquierotracosaparadrogarse",
+            "78"=> "78Hasusadoenalgunaocasiónunaagujaparainyectartedroga",
+            "79AMarihuana"=> "79AMarihuana",
+            "79BCrack"=> "79BCrack",
+            "79CCocaínaenpolvo"=> "79CCocaínaenpolvo",
+            "79DHeroína"=> "79DHeroína",
+            "79EMetanfetaminaocristal"=> "79EMetanfetaminaocristal",
+            "79FÉxtasisMDMA"=> "79FÉxtasisMDMA",
+            "79GInhalantescomopegamentocementopinturaspray"=> "79GInhalantescomopegamentocementopinturaspray",
+            "79HNoresponde"=> "79HNoresponde",
+            "79IOtrosespecifica"=> "79IOtrosespecifica",
+            "80AMarihuana"=> "80AMarihuana",
+            "80BCrack"=> "80BCrack",
+            "80CCocaínaenpolvo"=> "80CCocaínaenpolvo",
+            "80DHeroína"=> "80DHeroína",
+            "80EMetanfetaminaocristal"=> "80EMetanfetaminaocristal",
+            "80FÉxtasisMDMA"=> "80FÉxtasisMDMA",
+            "80GInhalantescomopegamentocementopinturaspray"=> "80GInhalantescomopegamentocementopinturaspray",
+            "80HNoresponde"=> "80HNoresponde",
+            "80IOtrosespecifica"=> "80IOtrosespecifica",
+            "81AMarihuana"=> "81AMarihuana",
+            "81BCrack"=> "81BCrack",
+            "81CCocaínaenpolvo"=> "81CCocaínaenpolvo",
+            "81DHeroína"=> "81DHeroína",
+            "81EMetanfetaminaocristal"=> "81EMetanfetaminaocristal",
+            "81FxtasisMDMA"=> "81FxtasisMDMA",
+            "81GInhalantescomopegamentocementopinturaspray"=> "81GInhalantescomopegamentocementopinturaspray",
+            "81HNoresponde"=> "81HNoresponde",
+            "81IOtrosespecifica"=> "81IOtrosespecifica",
+            "82"=> "82Algunavezhastenidorelacionessexuales",
+            "83"=> "83Quéedadteníaslaprimeravezquetuvisterelacionessexuales",
+            "84"=> "84Conquiéneshastenidorelacionessexuales",
+            "85"=> "85Concuántaspersonasdiferenteshastenidorelacionessexualesenlosúltimos12meses",
+            "86"=> "86Laúltimavezquetuvisterelacionessexualestuotucompañeroautilizóuncondón",
+            "87ANoutilicéningúnmétodoparaprevenirelembarazo"=> "87ANoutilicéningúnmétodoparaprevenirelembarazo",
+            "87BCondón"=> "87BCondón",
+            "87CCondónfemenino"=> "87CCondónfemenino",
+            "87DPíldoraanticonceptiva"=> "87DPíldoraanticonceptiva",
+            "87ERitmomantenerrelacionesendíasnofértilesocuandonohayovulación"=> "87ERitmomantenerrelacionesendíasnofértilesocuandonohayovulación",
+            "87FRetirodetenerlapenetraciónantesdeeyacular"=> "87FRetirodetenerlapenetraciónantesdeeyacular",
+            "87GMelamujereslactando"=> "87GMelamujereslactando",
+            "87HDIUcomoMirenaoParagard"=> "87HDIUcomoMirenaoParagard",
+            "87IInyeccióncomoDepoProveraunparcheOrthoEvraounanillocomoNuvaRing"=> "87IInyeccióncomoDepoProveraunparcheOrthoEvraounanillocomoNuvaRing",
+            "87JImplanteonorplantcomoImplanonoNexplanon"=> "87JImplanteonorplantcomoImplanonoNexplanon",
+            "87KEsterilizaciónfemenina"=> "87KEsterilizaciónfemenina",
+            "87LEsterilizaciónmasculina"=> "87LEsterilizaciónmasculina",
+            "87MNoséInseguro"=> "87MNoséInseguro",
+            "87NOtro"=> "87NOtro",
+            "88"=> "88Algunavezalguientehaobligadoatenerrelacionessexuales",
+            "89"=> "89Algunavezhastenidorelacionessexualespordinerobienescelularesviviendaetcoserviciosproteccióncomidaetc",
+            "89A"=> "89ASilarespuestaesafirmativaCuándofuelaúltimavez",
+            "90"=> "90Siquisierascompraruncondóncreesquepodríasencontrarlo",
+            "91"=> "91Siquisierastenersexocreesquepodriasconvenceratuparejadequeusecondónencasodequeélellaseniegueausarlo",
+            "92"=> "92Tesientescapazdetenerunaconversaciónabiertayhonestasobresexoconsuspadres",
+            "93"=> "93Algunavezhastenidounaconversaciónabiertayhonestasobresexocontuspadres",
+            "94"=> "94Algunavezalguientehaenseñadoohabladoacercadelasinfeccionesdetransmisiónsexual",
+            "94AOrientadoraoPsicólogoadelaescuela"=> "94AOrientadoraoPsicólogoadelaescuela",
+            "94APadreoMadre"=> "94APadreoMadre",
+            "94APromotoradeSalud"=> "94APromotoradeSalud",
+            "94AProfesoradelaescuela"=> "94AProfesoradelaescuela",
+            "94AInternet"=> "94AInternet",
+            "94AAmigos"=> "94AAmigos",
+            "94AOtroEspecifique"=> "94AOtroEspecifique",
+            "95"=> "95Algunavezlehanenseñadoacercadeprevencióndeembarazo",
+            "95AOrientadoraoPsicólogoadelaescuela"=> "95AOrientadoraoPsicólogoadelaescuela",
+            "95APadreoMadre"=> "95APadreoMadre",
+            "95APromotoradeSalud"=> "95APromotoradeSalud",
+            "95AProfesoradelaescuela"=> "95AProfesoradelaescuela",
+            "95AInternet"=> "95AInternet",
+            "95AAmigos"=> "95AAmigos",
+            "95AOtroEspecifique"=> "95AOtroEspecifique",
+            "96"=> "96AlgunavezlehanenseñadoacercalainfecciónporVIHSida",
+            "96AOrientadoraoPsicólogoadelaescuela"=> "96AOrientadoraoPsicólogoadelaescuela",
+            "96APadreoMadre"=> "96APadreoMadre",
+            "96APromotoradeSalud"=> "96APromotoradeSalud",
+            "96AProfesoradelaescuela"=> "96AProfesoradelaescuela",
+            "96AInternet"=> "96AInternet",
+            "96AAmigos"=> "96AAmigos",
+            "96AOtroEspecifique"=> "96AOtroEspecifique"
+        );
+
+        // set the columns as variable
+        variable_set("ajSurveyKeys", $surveyFields);
+
+
+    }catch(Exception $e){
+        ajetllog_log("ajexportsurveys", "ERROR", $e->getMessage());
+
+    }
+}
+/**
+ * Implement hook_enable()
+ */
+function ajexportsurveys_enable() {
+
+}
+
+/**
+ * Delete module variables.
+ */
+function ajexportsurveys_deleteModuleVariables(){
+    variable_del("ajRegKeys");
+    variable_del("ajSurveyFields");
+    variable_get("ajProviderIds");
+}

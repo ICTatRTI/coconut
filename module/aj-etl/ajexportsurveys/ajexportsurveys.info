@@ -1,3 +1,0 @@
-name = AJ Export Survey Data to CSV
-description = Extracts surveys from CouchDB and generates CSV files.
-core = 7.x

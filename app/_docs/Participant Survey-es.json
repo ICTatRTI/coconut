@@ -2025,6 +2025,7 @@
             "action_on_questions_loaded": "",
             "label": "Completado",
             "onComplete" : {
+                "showSuccess": "true",
                 "type" : "choice",
                 "message" : "Gracias, el impresso está completado. ¿Qué quiere hacer proxima?",
                 "links" : [

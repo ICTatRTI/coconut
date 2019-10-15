@@ -185,7 +185,10 @@ echo '</pre>';
 					$selectedRole = '8';
 				} else if (in_array('Data Entry', $form["#user"]->roles)) {
 					$selectedRole = '9';
+				} else if (in_array('Provider Consulta', $form["#user"]->roles)) {
+				  $selectedRole = '10';
 				}
+				
 
 				// but this could be a resubmission of a form so override the selectedRole if 
 				// formstate has a role
@@ -197,7 +200,8 @@ echo '</pre>';
 					$roles['7'] = 'Evaluator';
 					$roles['4'] = 'Provider Administrator';
 					$roles['8'] = 'Case Manager';
-					$roles['9'] = 'Data Entry';				
+					$roles['9'] = 'Data Entry';			
+					$roles['10'] = 'Provider Consulta';
 				} else if (in_array('Provider Administrator', $user->roles) ) {
 					// if the user to be edited happens to be a provider admin, then 
 					// let them keep provider admin as a role

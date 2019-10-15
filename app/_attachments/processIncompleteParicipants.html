@@ -45,7 +45,9 @@
 
             writeHeaders2CSV();
 
-            db.view("coconut/resultsByQuestionAndCompleteWithCollateral",
+            // TBD: Ideally we would query only incomplete regs but the query did not work for some reason
+             db.view("coconut/resultsByQuestionAndCompleteWithCollateral?startkey=%22Participant%20Registration-es%3Afalse%3Az%22&endkey=%22Participant%20Registration-es%3Afalse%22&descending=true&include_docs=false",
+           // db.view("coconut/resultsByQuestionAndCompleteWithCollateral",
                     {
                         success:function(data) {
                             // filter data and keep only registrations

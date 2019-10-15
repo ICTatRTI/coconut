@@ -89,7 +89,7 @@ function load_exit_worker()
     foreach ( $rows as $one_row ){
         list($type, $isCompleted, $lastModified1,$lastModified2, $lastModified3, $lastModified4) = explode(":", $one_row['key']);
 
-        
+
         // lastModified is in format as 2014-08-11T13:50:41-03:00 so need to re-create
         $lastModified = $lastModified1.':'.$lastModified2.':'.$lastModified3.':'.$lastModified4;
 
@@ -167,6 +167,7 @@ function ajetlexit_setModuleVariables(){
         "18Laúltimavez"=>"18Laúltimavezquetuvisterelacionessexualestúotucompañeroautilizócondón",
         "19Laúltimavez"=>"19Laúltimavezquetuvisterelacionessexualescuálmétodousasteotucompañeroaparaprevenirelembarazo",
         "21Siquisierastenersexo"=>"21Siquisierastenersexocreesqueseríascapazdeconvenceratuparejaqueuseuncondónencasoqueélellanoquiera",
+    	"9APorQueNoTienesActaDeNacimiento"=>"9ASinocuáleslarazónprincipalporlaquenotienesunactaMarcasólounaopción",
 
     );
 

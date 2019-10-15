@@ -1,56 +1,66 @@
 (function ($) {
   Drupal.behaviors.ajSkin = {
     attach: function (context, settings) {
+    	console.log("DataTable section");
 		if ($('#ajPageTableDefaults').length) {
 			$('#ajPageTableDefaults').dataTable({
+				"bRetrieve": true,
 				"sScrollX": "100%"
 			});
 		} else if ($('#ajPageTableNoPagingOrSorting').length){
 			$('#ajPageTableNoPagingOrSorting').dataTable({
+				"bRetrieve": true,
 				"bPaginate": false,
 				"bSort": false,
 				"bFilter": false
 			});
 		} else if ($('#ajOverdue').length){
 			$('#ajOverdue').dataTable({
-				"bPaginate": false,
+				"bRetrieve": true,
+				"bPaginate": true,
 				"bSort": true,
-				"bFilter": false
+				"bFilter": true
 			});
 		} else if ($('#ajRiskScreen').length){
 			$('#ajRiskScreen').dataTable({
-				"bPaginate": false,	
-				"bFilter": false,
+				"bRetrieve": true,
+				"bPaginate": true,	
+				"bFilter": true,
+				"bSort": true 
+			});
+		}
+		
+			$('#ajRiskScreenTotal').dataTable({
+				"bRetrieve": true,
+				"bPaginate": true,	
+				"bFilter": true,
 				"bSort": true
 			    
 			});
-		
-			$('#ajRiskScreenTotal').dataTable({
-				"bPaginate": false,	
-				"bFilter": false,
-				"bSort": false
-			    
-			});
-		}else if ($('#ajActiveParticipants').length){
 			$('#ajActiveParticipants').dataTable({
+				"bRetrieve": true,
 				"bPaginate": true,
 				"bSort": true,
-				"bFilter": false
+				"bFilter": true
 			});
-		}else if ($('#ajActiveParticipants2').length){
+
+			if ($('#ajActiveParticipants2').length){
 			$('#ajActiveParticipants2').dataTable({
+				"bRetrieve": true,
 				"bPaginate": true,
 				"bSort": true,
-				"bFilter": false
+				"bFilter": true
 			});
 		}else if ($('#ajProgramParticipantOverview').length){
 			$('#ajProgramParticipantOverview').dataTable({
+				"bRetrieve": true,
 				"bPaginate": true,
 				"bSort": true,
-				"bFilter": false
+				"bFilter": true
 			});
 		}else if ($('#ajParticipantActivitiesReceived').length){
 			$('#ajParticipantActivitiesReceived').dataTable({
+				"bRetrieve": true,
 				"bPaginate": true,
 				"bSort": true,
 				"bFilter": true

@@ -1,5 +1,7 @@
 -- ACCESS=access content
-SELECT reg.Nombre, reg.Apellido, reg.dob, ex.*  
+SELECT 	reg.Nombre, 
+		reg.Apellido, 
+		reg.dob, ex.*  
 FROM
 
 bitnami_drupal7.aj_exit ex  

@@ -1,0 +1,5 @@
+name = AJ Registration Form
+description = Form for collecting new beneficiaries' data
+core = 7.x
+;
+configure =	admin/config/content/ajregistration

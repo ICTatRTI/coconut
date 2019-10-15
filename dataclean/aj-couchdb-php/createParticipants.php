@@ -308,7 +308,7 @@ function createParticipant($client, $values){
         $isColateral = $values['ES_COLATERAL'];
 
         $pos = strrpos($isColateral, 'S¡');
-        if ($pos !== false){
+        if ($pos !== false || (strrpos($isColateral, 'Indirecto') !== false)){
             $doc->Estecolateralparticipante = "Sí";
         }
 

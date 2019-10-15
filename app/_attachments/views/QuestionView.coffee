@@ -253,6 +253,7 @@ class QuestionView extends Backbone.View
       c = new C32()
       c.getRandom(8)
       c.addChecksum()
+      console.log('UUID is' + c.value)
       window.questionCache['uuid'].find("input").val c.value
 
   triggerChangeIn: ( names ) ->
@@ -517,12 +518,8 @@ class QuestionView extends Backbone.View
 
     if hasOnComplete and isValid
       #TBD: find a better way to distinguish b/n registration and survey forms
-      if onComplete.showSuccess isnt undefined
-        uuid = window.getValueCache['uuid']()
 
-        if window.showSuccess
-          alert('¡Enhorabuena! Has completado correctamente el formulario. El UUID para esta forma es "'+ uuid + '". Tome nota de este número para referencia futura.');
-          window.showSuccess = false
+
 
       switch onComplete.type
         when "redirect"
@@ -712,6 +709,7 @@ class QuestionView extends Backbone.View
 
     $oldNext = $div
     @$next = $div.next(".question")
+    @$prev = $div
 
     if @$next.length is 0 # if nothing, check parents
       $parentsMaybe = $oldNext.parent().next(".question")
@@ -740,7 +738,12 @@ class QuestionView extends Backbone.View
         => 
           $(window).off( "scroll" )
           #VBJQUERY @$next.scrollTo().find("input[type='text'],input[type='number'],input[type='autocomplete from previous entries'], input=[type='autocomplete from list']").first().focus()
-          @$next.scrollTo().find("input[type='text'],input[type='number'],input[type='autocomplete from previous entries'], input[type='autocomplete from list']").first().focus()
+          if not window.saveERROR
+            @$next.scrollTo().find("input[type='text'],input[type='number'],input[type='autocomplete from previous entries'], input[type='autocomplete from list']").first().focus()
+          else
+            _this.$prev.scrollTo().find("input[type='text'],input[type='number'],input[type='autocomplete from previous entries'], input[type='autocomplete from list']").first().val('');
+            @$prev.scrollTo().find("input[type='text'],input[type='number'],input[type='autocomplete from previous entries'], input[type='autocomplete from list']").first().focus()
+
         1000
       )
 
@@ -808,7 +811,27 @@ class QuestionView extends Backbone.View
       currentData.savedBy = $.cookie('current_user')
       Coconut.questionView.result.save currentData,
         success: ->
+          window.saveERROR = false
+
+          if  Coconut.questionView.result.get("Completado") is "true"
+
+            uuid = Coconut.questionView.result.get("uuid")
+
+            if window.Coconut.questionView.model.id == 'Participant Registration-es' and  window.showSuccess
+              alert('¡Enhorabuena! Has completado correctamente el formulario. El UUID para esta forma es "'+ uuid + '". Tome nota de este número para referencia futura.');
+              window.showSuccess = false
+
+            else if window.showSuccess and window.Coconut.questionView.model.id == 'Participant Survey-es' and  window.showSuccess
+              alert('¡Felicitaciones! Has completado la Encuesta de Participante para UUID=' + uuid);
+              window.showSuccess = false
+
+
           $("#messageText").slideDown().fadeOut()
+        error: ->
+          window.saveERROR = true
+          if window.showSuccess
+            alert 'La información digitada no fue guardada debido a un problema con su conexión de Internet. Por favor, verifique y corriga su conexión de internet antes de continuar con la digitación'
+
     , 1000, trailing: false )
 
   completeButton: ( value ) ->

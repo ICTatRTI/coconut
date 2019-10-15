@@ -1,0 +1,333 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajexitactivities_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajexitactivities":
+			return '<p>' . t("Form to submit Exit Form Activities") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajexitactivities_menu() {
+	$items = array();
+
+	$items['ajexitactivities'] = array(
+		'title' => 'Exit Activity form',
+		'page callback' => '_ajexitactivities_page',
+		'access arguments' => array('access ajexitactivities content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+ /**
+  *  Page callback: Current users settings
+  *  @see current_users_menu()
+  */
+function ajexitactivities_form($form, &$form_state) {
+
+	$activityNamesOpt = array();
+	$programs = _ajexitactivities_get_programs()->fetchAllAssoc('entity_id');
+
+	global $user;
+	$isAdmin = TRUE;
+	if(!in_array('System Administrator', $user->roles) && !in_array('Evaluator', $user->roles) ) {
+		$isAdmin = FALSE;
+	}
+
+	foreach ($programs as $record) {
+		$suffix = $isAdmin? ' (' . $record->field_agency_name_value . ')':'';
+// 		watchdog('ajexitactivities', '$suffix ' . $suffix);
+		
+		
+		switch($record->field_programname_name_value) {
+			case 'Documentación':
+				$activityNamesOpt[$record->entity_id . '_0'] = t('Jóvenes que obtienen documentación '. $suffix);
+				break;
+		//	case 'Auto empleo/Empredurismo':
+			//	$activityNamesOpt[$record->entity_id . '_1'] = t('Jóvenes que obtienen empleo o pasantía pagada ' . $suffix);
+				//break;
+			case 'Capacitación Técnico Vocacional':
+				$activityNamesOpt[$record->entity_id . '_2'] = t('Jóvenes que terminan capacitación técnica ' . $suffix);
+				break;
+			case 'Inserción escolar':
+				$activityNamesOpt[$record->entity_id . '_3'] = t('Jóvenes reinsertados en la escuela ' . $suffix);
+				break;
+			case 'Espacio para Crecer':
+				$activityNamesOpt[$record->entity_id . '_4'] = t('Jóvenes graduados de EPC ' . $suffix);
+				break;
+			case 'LVPE: Ventajas Permanecer Escuela':
+				$activityNamesOpt[$record->entity_id . '_5'] = t('Jóvenes que han completado LVPE ' . $suffix);
+				break;
+			case 'La Compañia':
+				$activityNamesOpt[$record->entity_id . '_6'] = t('Jóvenes que han completado La Compañía ' . $suffix);
+				break;
+			case 'Estrella Jóvenes':
+			  $activityNamesOpt[$record->entity_id . '_7'] = t('Jóvenes que han completado Estrella Jóvenes ' . $suffix);
+			  break;
+			case 'Quantum Learning Estudiantes':
+			  $activityNamesOpt[$record->entity_id . '_8'] = t('Jóvenes que han completado QLS ' . $suffix);
+			  break;
+			case 'Redes Juveniles':
+			  $activityNamesOpt[$record->entity_id . '_9'] = t('Jóvenes que terminan Redes Juveniles ' . $suffix);
+			  break;
+			default:
+// 				watchdog('ajexitactivities', '$program_name ' . $record->field_programname_name_value);
+				
+		}
+	}
+	
+// 	watchdog('ajexitactivities', implode(', ', $activityNamesOpt));
+
+	$form['activity_name_prefix'] = array(
+			'#type' => 'select',
+			'#title' => t('Exit activity type: '),
+			'#description' => t('Indicate the exit activity type here'),
+			'#options' => $activityNamesOpt,
+			'#empty_option' => t('-  Select  -'),
+			'#required' => TRUE,
+	);
+
+	$form['activity_name_sufix'] = array(
+			'#type' => 'textfield',
+			'#title' => t('Activity Name: '),
+			'#description' => t('Indicate the activity name here'),
+			'#size' => 60,
+			'#maxlength' => 128,
+			'#required' => TRUE,
+	);
+
+
+
+	$entity = new stdClass();
+ 	$entity->type = 'activity';
+	field_attach_form('activity', $entity, $form, $form_state, NULL);
+	unset($form['field_activity_name']);
+	unset($form['field_activity_program']);
+
+	$caseManagers = _ajexitactivities_get_case_managers();
+	$items = array();
+
+	$items["_none"] = t("- Select a value -");
+	foreach ($caseManagers as $record) {
+		$items[(int)$record->uid] = t($record->name);
+	}
+
+	$form['field_activity_case_manager']['und']['#options'] = $items;
+
+	$form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Create activity'),
+		'#weight' => 100,
+	);
+
+	return $form;
+}
+
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function ajexitactivities_form_submit($form, &$form_state) {
+
+	$activity_name_prefix = $form_state['values']['activity_name_prefix'];
+	$activity_name_sufix = $form_state['values']['activity_name_sufix'];
+	$prog_activity_numer_split = explode('_', $activity_name_prefix);
+	$activity_program = $prog_activity_numer_split[0];
+	$activity_name_number = $prog_activity_numer_split[1];
+	$activity_active = $form_state['values']['field_activity_active'] ['und'][0]['value'];
+	$activity_case_manager = $form_state['values']['field_activity_case_manager']['und'][0]['target_id'];
+	$activity_date = $form_state['values']['field_activity_date']['und'][0]['value'];
+	$activity_description = $form_state['values']['field_activity_description']['und'][0]['value'];
+	$activity_type = $form_state['values']['field_activity_type']['und'][0]['target_id'];
+
+	switch($activity_name_number) {
+		case 0:
+			$activity_name_full = 'Obtienen documentación - '.$activity_name_sufix;
+			break;
+	//	case 1:
+		//	$activity_name_full = 'Obtienen empleo o pasantía pagada - '.$activity_name_sufix;
+			//break;
+		case 2:
+			$activity_name_full = 'Terminan capacitación técnica - '.$activity_name_sufix;
+			break;
+		case 3:
+			$activity_name_full = 'Reinsertados en la escuela - '.$activity_name_sufix;
+			break;
+		case 4:
+			$activity_name_full = 'Graduados de EPC - '.$activity_name_sufix;
+			break;
+		case 5:
+			$activity_name_full = 'Terminan LVPE - '.$activity_name_sufix;
+			break;
+		case 6:
+			$activity_name_full = 'Terminan La Compañía - '.$activity_name_sufix;
+			break;
+		case 7:
+		  $activity_name_full = 'Terminan Estrella Jóvenes - '.$activity_name_sufix;
+		  break;
+		case 8:
+		  $activity_name_full = 'Terminan QLS - '.$activity_name_sufix;
+		case 9:
+		  $activity_name_full = 'Terminan Red Juvenil - '.$activity_name_sufix;  
+		  break;
+	}
+
+	_ajexitactivities_create_activity_instance(
+			$activity_name_full,
+			$activity_active,
+			$activity_case_manager,
+			$activity_date,
+			$activity_description,
+			$activity_program,
+			$activity_type
+			);
+
+		drupal_set_message(t('The exit activity has been created correctly.'));
+
+		$form_state['redirect'] = 'mis-actividades';
+
+}
+
+/**
+ *	Implements validation from the Form API.
+ *
+ * @param $form
+ *   A structured array containing the elements and properties of the form.
+ * @param $form_state
+ *   An array that stores information about the form's current state
+ *   during processing.
+ */
+ function ajexitactivities_form_validate($form, &$form_state) {
+	$activity_date =  $form_state['values']['field_activity_date']['und'][0]['value'];
+	$now = date('Y-m-d', time());
+
+	// Check if the date is empty
+	if (($activity_date === null || $activity_date === '')) {
+		form_set_error('field_activity_date', t('The activity date can\'t be empty'));
+	}
+
+	// Check if the date is valid and has the right format
+	if (is_string($activity_date) && strtotime($activity_date) === FALSE) {
+		form_set_error('field_activity_date', t('The activity date has incorrect format. See the example below'));
+	}
+
+	// Check if date is no later than today
+	if (is_string($activity_date) && strncmp($activity_date, $now, 10) > 0 ) {
+		form_set_error('field_activity_date', t('The activity date can\'t be later than today'));
+	}
+
+	
+ }
+
+
+ /**
+  * Implements the hook_permissions
+  */
+ function ajexitactivities_permission() {
+	return array(
+		'access ajexitactivities content' => array(
+				'title' => t('Access content for ajexitactivities module'),
+				'description' => t('Control the access for the exit activities form'),
+		)
+	);
+ }
+
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajexitactivities_page() {
+	return drupal_get_form('ajexitactivities_form');
+}
+
+
+/**
+ * Create the new activity entity instance
+ */
+function _ajexitactivities_create_activity_instance(
+			$activity_name_full,
+			$activity_active,
+			$activity_case_manager,
+			$activity_date,
+			$activity_description,
+			$activity_program,
+			$activity_type) {
+
+	$entity = entity_create('activity', array('type' =>'activity'));
+	$entity_wrapper = entity_metadata_wrapper('activity' ,$entity);
+	$info = $entity_wrapper->getPropertyInfo();
+	$entity_wrapper->field_activity_name->set($activity_name_full);
+	$entity_wrapper->field_activity_active->set($activity_active);
+	$entity_wrapper->field_activity_case_manager->set($activity_case_manager);
+	$entity_wrapper->field_activity_date->set( strtotime($activity_date));
+	$entity_wrapper->field_activity_description->set($activity_description);
+	$entity_wrapper->field_activity_program->set($activity_program);
+	$entity_wrapper->field_activity_type->set($activity_type);
+	$entity_wrapper->save();
+}
+
+/**
+ * Populate the Case Manager list according with the user role
+ */
+function _ajexitactivities_get_case_managers() {
+	global $user;
+
+	$providerID = db_query(
+			'SELECT field_user_provider_target_id
+			FROM {field_revision_field_user_provider}
+			WHERE entity_id = :uid', array(':uid' => $user->uid))->fetchField(0);
+
+	$query = db_select('field_revision_field_user_provider', 'userProv');
+	$query->join('users', 'u', 'u.uid = userProv.entity_id');
+	$query->join('users_roles', 'ur', 'ur.uid = userProv.entity_id');
+	$query->fields('u', array('uid', 'name'))
+				->condition('status', 1)
+				->condition('ur.rid', 8) // The CaseManager Role
+				->orderBy('name', 'ASC');
+	if(!in_array('System Administrator', $user->roles) && !in_array('Evaluator', $user->roles) ) {
+		$query->condition('field_user_provider_target_id', $providerID);
+	}
+
+	return $query->execute();
+}
+
+/**
+ * Populate the Case Manager list according with the user role
+ */
+function _ajexitactivities_get_programs() {
+	global $user;
+
+	$providerID = db_query(
+			'SELECT field_user_provider_target_id
+			FROM {field_revision_field_user_provider}
+			WHERE entity_id = :uid', array(':uid' => $user->uid))->fetchField(0);
+
+	$query = db_select('field_data_field_agency_name', 'provName');
+	$query->join('field_data_field_program_provider', 'progProv', 'provName.entity_id = progProv.field_program_provider_target_id');
+	$query->join('field_data_field_program_name', 'progName', 'progName.entity_id = progProv.entity_id');
+	$query->join('field_data_field_programname_name', 'progNameName', 'progNameName.entity_id = progName.field_program_name_target_id');
+	$query->fields('provName', array('field_agency_name_value'));
+	$query->fields('progName', array('entity_id'));
+	$query->fields('progNameName', array('field_programname_name_value'))
+				->orderBy('field_programname_name_value', 'ASC');
+	if(!in_array('System Administrator', $user->roles) && !in_array('Evaluator', $user->roles) ) {
+		$query->condition('provName.entity_id', $providerID);
+	}
+
+	return $query->execute();
+}

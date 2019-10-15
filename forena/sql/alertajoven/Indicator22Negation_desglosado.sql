@@ -1,0 +1,63 @@
+--ACCESS=access content
+Select * from (SELECT distinct
+    version,
+    reg.uuid,
+    reg.nombre,
+    reg.apellido,
+    reg.sexo,
+    reg.dob,
+    reg.Calleynumero,
+    reg.BarrioComunidad,
+    reg.Municipio,
+    reg.Provincia,
+    reg.Casa,
+    reg.Celular,
+    reg.Teléfono,
+    DATE_FORMAT(FROM_DAYS(DATEDIFF(reg.Fecha, reg.dob)), '%Y') + 0 AS age,
+    reg.provider_id,
+    agency.field_agency_name_value as provider_name,
+    4_Actualmentetienesuntrabajoenel,
+    8_Cuandoiniciasteelcursotecnicoyaestabas,
+    8_3Cambiastedelugardetrabajodespues,
+    8_1Considerasquetutrabajoactual,
+    13_Hasrecibidounprestamoatravesdelproyecto,
+    14_Tienesunnegociopropio,
+    16_Siyateniasunnegocioconsiderasquedespuesdel
+FROM
+    bitnami_drupal7.aj_labor labor
+        JOIN
+    bitnami_drupal7.aj_registration reg ON labor.uuid = reg.uuid
+    JOIN 
+    bitnami_drupal7.field_data_field_agency_name agency on reg.provider_id = agency.entity_id
+WHERE
+  1 = 1 
+--SWITCH=:collateral
+-- estecolateralparticipante can have 1 of 4 values: No, Si, No Sabe (which means Don't know), blank (which means no value, not set)
+--CASE=collateral
+and reg.Estecolateralparticipante = 'Sí'
+--CASE=nonCollateral
+and reg.Estecolateralparticipante != 'Sí'
+--END
+
+--IF=:from_date
+and SUBSTRING(labor.created, 1, 10) >= :from_date
+--END
+--IF=:to_date
+and SUBSTRING(labor.created, 1, 10) <= :to_date
+--END
+
+--IF=:provider_id
+and reg.provider_id in (:provider_id) 
+--END
+
+AND version = (SELECT max(version) FROM bitnami_drupal7.aj_labor temp WHERE temp.uuid = labor.uuid)
+
+GROUP BY UUID) as tb1
+WHERE
+(4_Actualmentetienesuntrabajoenel in ('No', ''))
+AND ( 8_3Cambiastedelugardetrabajodespues in ('No', '') 
+      AND 8_1Considerasquetutrabajoactual in ('No', '')
+    )
+AND (14_Tienesunnegociopropio in ('No', 'Ya tenía un negocio', ''))
+AND (16_Siyateniasunnegocioconsiderasquedespuesdel in ('No', ''))
+

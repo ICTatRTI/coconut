@@ -1,0 +1,5 @@
+name = AJ Labor Form
+description = Implementation of the Labor Survey Survey
+core = 7.x
+;
+configure =	admin/config/content/ajlabor

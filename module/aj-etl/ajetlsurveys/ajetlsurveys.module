@@ -172,13 +172,13 @@ function ajetlsurveys_setModuleVariables(){
      "15Cuálesel"=>"15Cuáleselniveleducativomásaltoquehasaprobado",
      "23Hassidos"=>"23Hassidosuspendidoadelaescuelaalgunavez",
      "25Hasreali"=>"25Hasrealizadoalgunavezuntrabajoporpagaoganancia",
-     "15Cuálesel"=>"26Durantelaúltimasemanarealizastealgúntrabajoporpagaoganancia",
+     "26Durantel"=>"26Durantelaúltimasemanarealizastealgúntrabajoporpagaoganancia",
      "33Actualme"=>"33Actualmenterealizasalgúntrabajoenelquenosetepagaonorecibesganancia",
      "39Hasbusca"=>"39Hasbuscadounnuevoomejorempleoenelúltimomes",
      "40Hasparti"=>"40Hasparticipadoenalgúnprogramadedesarrollodeempleo",
      "41Conquéfr"=>"41Conquéfrecuenciatepreocupaservíctimadeladelincuenciaentubarrio",
-     "44Entuopin"=>"42Conquéfrecuenciatepreocupaservíctimadeladelincuenciaentuescuelaouniversidad",
-     "33Actualme"=>"44Entuopiniónladelincuenciaesunproblemagraveentubarrio",
+     "42Conquéfr"=>"42Conquéfrecuenciatepreocupaservíctimadeladelincuenciaentuescuelaouniversidad",
+     "44Entuopin"=>"44Entuopiniónladelincuenciaesunproblemagraveentubarrio",
      "45Tepreocu"=>"45Tepreocupalapresenciadepandillasentubarrio",
      "46Lapreocu"=>"46Lapreocupaciónporladelincuenciaocrimenteimpiderealizarlascosasquedeseashacerentubarrio",
      "48Hassidot"=>"48Hassidotransportadoenunapatrullapolicialporunaredadaoporsospechadelapolicíahaciati",
@@ -203,7 +203,7 @@ function ajetlsurveys_setModuleVariables(){
      "73AActualm"=>"73AActualmenteestásinvolucradoenunapandilla",
      "74Comparte"=>"74Compartestiempooterelacionasconmiembrosdeunapandilla",
      "75Enlosúlt"=>"75Enlosúltimos12meseshashabladoocompartidoconalguienborrachoodrogado",
-     "76AEnlosúl"=>"76Algunavezhastomadounabebidaalcohólicaunacopavasoenteronosólounsorbo",
+     "76Algunave"=>"76Algunavezhastomadounabebidaalcohólicaunacopavasoenteronosólounsorbo",
      "76AEnlosúl"=>"76AEnlosúltimos12meseshasconsumidoalcohol",
      "76BEnlosúl"=>"76BEnlosúltimos12meseshastomadocincovasoscopasomásdebebidasalcohólicasenelmismodía",
      "77Hasproba"=>"77Hasprobadoalgunavezcualquieradeestasdrogasmarihuanacocaínaheroínapastillascrackcementoocualquierotracosaparadrogarse",
@@ -219,8 +219,18 @@ function ajetlsurveys_setModuleVariables(){
      "93Algunave"=>"93Algunavezhastenidounaconversaciónabiertayhonestasobresexocontuspadres",
      "94Algunave"=>"94Algunavezalguientehaenseñadoohabladoacercadelasinfeccionesdetransmisiónsexual",
      "95Algunave"=>"95Algunavezlehanenseñadoacercadeprevencióndeembarazo",
-     "75Enlosúlt"=>"96AlgunavezlehanenseñadoacercalainfecciónporVIHSida",
-     "75Enlosúlt"=>"89ASilarespuestaesafirmativaCuándofuelaúltimavez"
+     "96Algunave"=>"96AlgunavezlehanenseñadoacercalainfecciónporVIHSida",
+     "89ASilares"=>"89ASilarespuestaesafirmativaCuándofuelaúltimavez",
+ 	"17EnElUltimoAnoCuantaVecesHasFaltadoEscuela"=>"17Enelúltimoañocuántasveceshasfaltadoalaescuelaporundíacompletosinexcusa",
+ 	"19ActualmenteEstasAsistiendoAlgunProgramaDeEduca"=>"19ActualmenteestasasistiendoaalgúnprogramadeeducaciónparajóvenesyadultosMarcalaopciónqueaplique",
+ 	"76BEnLosUltimos12MesesHasTomado5Vasos"=>"76BEnlosúltimos12meseshastomadocincovasoscopasomásdebebidasalcohólicasenelmismodía",
+ 	"96AOrientadoraoPsicólogoadelaescuela"=>"96AOrientadoraoPsicólogoadelaescuela",
+ 	"96APadreoMadre"=>"96APadreoMadre",
+ 	"96APromotoradeSalud"=>"96APromotoradeSalud",
+ 	"96AProfesoradelaescuela"=>"96AProfesoradelaescuela",
+  	"96AInternet"=>"96AInternet",
+ 	"96AAmigos"=>"96AAmigos",
+  	"96AOtroEspecifique"=>"96AOtroEspecifique",
   );
 
     variable_set("surveyColumnMap", $surveyColumnMap);
@@ -312,14 +322,154 @@ function ajetlsurveys_genInsertQueryPart2($doc){
         }else if ($key === "Fecha"){
             $val = ajetlsurveys_processFecha($doc);
             $query = $query . $val . " ";
-
         }else if ($key === "27Mes"){
-            $val = $doc[$key];
+        	if (isset($doc['27Mes'])) {
+            	$val = $doc[$key];
+        	} else {
+//         		ajetllog_log("ajetlsurveys", "MESSAGE", "27Mes is not set for " . $doc['uuid']);
+        		$val = '';
+        	}
             if (strlen($val) > 16)
                 $val = "";
-
             $query = $query . "'" . $val . "' ";
-        }else {
+        } else if ($key === "13Afecha1" || $key === "13Asexo1" || $key === "13AMismaCasa1" || $key === "13AActaDeNacimiento1") {
+
+        	if ($key === "13Afecha1") {
+	        	if(isset($doc['Fechadenacimiento'][0])){
+	        		$val = $doc['Fechadenacimiento'][0];
+	        	} else {
+	        		$val = "1900-01-01";
+	        	}
+        	}
+
+        	if ($key === "13Asexo1") {
+	        	if(isset($doc['Sexo'][0])){
+		        	$val = $doc['Sexo'][0];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AMismaCasa1") {
+	        	if(isset($doc['Ustedyellaniñoaviveenlamismacasa'][0])){
+		        	$val = $doc['Ustedyellaniñoaviveenlamismacasa'][0];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AActaDeNacimiento1") {
+	        	if(isset($doc['Esteniñotieneunactadenacimientodominicana'][0])){
+		        	$val = $doc['Esteniñotieneunactadenacimientodominicana'][0];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+        	$query = $query . "'" . $val . "' ";
+        } else if ($key === "13Afecha2" || $key === "13Asexo2" || $key === "13AMismaCasa2" || $key === "13AActaDeNacimiento2" ) {
+        if ($key === "13Afecha2") {
+	        	if(isset($doc['Fechadenacimiento'][1])){
+	        		$val = $doc['Fechadenacimiento'][1];
+	        	} else {
+	        		$val = "1900-01-01";
+	        	}
+        	}
+
+        	if ($key === "13Asexo2") {
+	        	if(isset($doc['Sexo'][1])){
+		        	$val = $doc['Sexo'][1];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AMismaCasa2") {
+	        	if(isset($doc['Ustedyellaniñoaviveenlamismacasa'][1])){
+		        	$val = $doc['Ustedyellaniñoaviveenlamismacasa'][1];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AActaDeNacimiento2") {
+	        	if(isset($doc['Esteniñotieneunactadenacimientodominicana'][1])){
+		        	$val = $doc['Esteniñotieneunactadenacimientodominicana'][1];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+        	$query = $query . "'" . $val . "' ";
+        } else if ($key === "13Afecha3" || $key === "13Asexo3" || $key === "13AMismaCasa3" || $key === "13AActaDeNacimiento3") {
+
+        	if ($key === "13Afecha3") {
+	        	if(isset($doc['Fechadenacimiento'][2])){
+	        		$val = $doc['Fechadenacimiento'][2];
+	        	} else {
+	        		$val = "1900-01-01";
+	        	}
+        	}
+
+        	if ($key === "13Asexo3") {
+	        	if(isset($doc['Sexo'][2])){
+		        	$val = $doc['Sexo'][2];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AMismaCasa3") {
+	        	if(isset($doc['Ustedyellaniñoaviveenlamismacasa'][2])){
+		        	$val = $doc['Ustedyellaniñoaviveenlamismacasa'][2];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AActaDeNacimiento3") {
+	        	if(isset($doc['Esteniñotieneunactadenacimientodominicana'][2])){
+		        	$val = $doc['Esteniñotieneunactadenacimientodominicana'][2];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+        	$query = $query . "'" . $val . "' ";
+        } else if ($key === "13Afecha4" || $key === "13Asexo4" || $key === "13AMismaCasa4" || $key === "13AActaDeNacimiento4") {
+
+        	if ($key === "13Afecha4") {
+	        	if(isset($doc['Fechadenacimiento'][3])){
+	        		$val = $doc['Fechadenacimiento'][3];
+	        	} else {
+	        		$val = "1900-01-01";
+	        	}
+        	}
+
+        	if ($key === "13Asexo4") {
+	        	if(isset($doc['Sexo'][3])){
+		        	$val = $doc['Sexo'][3];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AMismaCasa4") {
+	        	if(isset($doc['Ustedyellaniñoaviveenlamismacasa'][3])){
+		        	$val = $doc['Ustedyellaniñoaviveenlamismacasa'][3];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+            if ($key === "13AActaDeNacimiento4") {
+	        	if(isset($doc['Esteniñotieneunactadenacimientodominicana'][3])){
+		        	$val = $doc['Esteniñotieneunactadenacimientodominicana'][3];
+		        } else {
+		        	$val = "";
+		        }
+        	}
+
+        	$query = $query . "'" . $val . "' ";
+        } else {
             if (is_array($val)){
                 $val = $val[0];
             }
@@ -343,11 +493,7 @@ function ajetlsurveys_genInsertQueryPart2($doc){
             $query = $query . "'" . $val . "' ";
         }
 
-
-
-
          $query = $query.",";
-
 
     }
 
@@ -371,10 +517,14 @@ function ajetlsurveys_insertSurvey($doc){
     $q2 = ajetlsurveys_genInsertQueryPart2($doc);
     $query = "INSERT INTO {aj_survey} (".$q1.") VALUES(".$q2.")";
 
+
+//     watchdog('claudia', 'heelo'.$query);
+
     try{
         $result = db_query($query);
     }catch(Exception $e){
-        ajetllog_error("ajetlsurveys", "MySQL ERROR", "MySQL error.", $e->getMessage(), "");
+        ajetllog_error("ajetlsurveys", "MySQL ERROR", "MySQL error.", $e->getMessage() . '. uuid: '. $doc['uuid'], $doc['provider_id']);
+//  		ajetllog_error("ajetlsurveys", "MySQL ERROR", $query, "");
     }
 
 

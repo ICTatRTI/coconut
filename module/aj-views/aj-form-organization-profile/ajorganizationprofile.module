@@ -1,0 +1,380 @@
+<?php
+
+/**
+ * @filesource
+ * This is the hook_help implementation
+ *
+ * @param path
+ *   Which path of the site we're using to display help
+ * @param arg
+ *   Array that holds the current path as returned from arg() function
+ */
+function ajorganizationprofile_help($path, $arg) {
+	switch ($path) {
+		case "admin/help#ajorganizationprofile":
+			return '<p>' . t("Displays status of the organization") . '</p>';
+			break;
+	}
+}
+
+/**
+ *Implements the hook_menu
+ */
+ function ajorganizationprofile_menu() {
+	$items = array();
+
+	$items['ajorganizationprofile'] = array(
+		'title' => 'Organization dashboard',
+		'description' => 'Displays current status of the current status',
+		'page callback' => '_ajorganizationprofile_page',
+    	'page arguments' => array('ajorganizationprofile_form'),
+		'access arguments' => array('access ajorganizationprofile content'),
+		'type' => MENU_NORMAL_ITEM,
+	);
+
+	return $items;
+ }
+
+function ajorganizationprofile_form($form, &$form_state) {
+
+	$provider_id = _ajorganizationprofile_getProviderId();
+	$agencyGoals = _ajorganizationprofile_getGoals($provider_id);
+	$directRegsTotal = _ajorganizationprofile_getDirectRegsTotal($provider_id);
+	$indirectRegsTotal = _ajorganizationprofile_getIndirectRegsTotal($provider_id);
+	$servedDirectParticipantsTotal = _ajorganizationprofile_getServedDirectParticipantsTotal($provider_id);
+	$servedDirectParticipantsTotal11_17 = _ajorganizationprofile_getServedDirectParticipantsTotal11_17($provider_id);
+	$servedDirectParticipantsTotal18_24 = _ajorganizationprofile_getServedDirectParticipantsTotal18_24($provider_id);
+	$servedIndirectParticipantsTotal = _ajorganizationprofile_getServedIndirectParticipantsTotal($provider_id);
+	$participantSurveyTotal = _ajorganizationprofile_getParticipantSurveyTotal($provider_id);
+	$MARPSurveyTotal =_ajorganizationprofile_getMARPSurveyTotal($provider_id);
+	$laborSurveyTotal = _ajorganizationprofile_getLaborSurveyTotal($provider_id);
+	$exitSurveyTotal = _ajorganizationprofile_getExitSurveyTotal($provider_id);
+	$programsListWithTotalOfActivities = _ajorganizationprofile_getProgramsListWithTotalOfActivities($provider_id);
+	$programsListWithTotalParticipant11 = _ajorganizationprofile_getProgramsListWithTotalParticipant11($provider_id);
+	$programsListWithTotalParticipant11_17 = _ajorganizationprofile_getProgramsListWithTotalParticipant11_17($provider_id);
+	$programsListWithTotalParticipant18_24 = _ajorganizationprofile_getProgramsListWithTotalParticipant18_24($provider_id);
+	$programsListWithTotalParticipant25 = _ajorganizationprofile_getProgramsListWithTotalParticipant25($provider_id);
+	$programsListWithTotalParticipantUnk = _ajorganizationprofile_getProgramsListWithTotalParticipantUnk($provider_id);
+	
+	// Horizontal tabs container
+	$form['tabs'] = array(
+			'#type'     => 'horizontal_tabs',
+			'#attached' => array('library' => array(array('field_group', 'horizontal-tabs'))), // Converts fieldsets into tabs
+	);
+	
+	$form['goals_info'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Metas'),
+			'#group' => 'tabs',
+	);
+	
+	$form['totals_info'] = array(
+			'#type'  => 'fieldset',
+			'#title' => t('Resumen'),
+			'#group' => 'tabs',
+	);
+	
+	$rows = array();
+	array_push($rows, array('<b>Total registros Directos:</b>', $directRegsTotal));
+	array_push($rows, array('<b>Total registros Indirectos:</b>', $indirectRegsTotal));
+	array_push($rows, array('<b>Total beneficiarios servidos Directos</b>', $servedDirectParticipantsTotal));
+	array_push($rows, array('<b>Total beneficiarios servidos Indirectos:</b>', $servedIndirectParticipantsTotal));
+	array_push($rows, array('<b>Total beneficiarios con Encuesta de Participante:</b>', $participantSurveyTotal));
+	array_push($rows, array('<b>Total beneficiarios con Encuesta MARP:</b>', $MARPSurveyTotal));
+	array_push($rows, array('<b>Total beneficiarios con Encuesta de Salida:</b>', $exitSurveyTotal));
+	array_push($rows, array('<b>Total beneficiarios con Encuesta Inserción Laboral:</b>', $laborSurveyTotal));
+	
+	$form['totals_info']['totals_info_regs_surveys'] = array(
+			'#markup' => theme('table', array('header' => array('Registros y Encuestas', ''), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 70%')))
+	);
+	
+	$rows = array();
+	array_push($rows, array('<b>Total de Programas:</b>', count($programsListWithTotalOfActivities)));
+	array_push($rows, array('<b>Programas:</b>', theme_item_list(array('items' => array_keys($programsListWithTotalOfActivities), 'title' => null, 'type' => 'ul', 'attributes' => []))));
+	
+	$form['totals_info']['totals_info_programs'] = array(
+			'#markup' => theme('table', array('header' => array('Programas y Actividades', ''), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 70%')))
+	);
+	
+	$rows = array();
+	foreach ($programsListWithTotalOfActivities as $entry) {
+		array_push(
+				$rows, 
+				array(
+						$entry->field_programname_name_value, 
+						$entry->total_activities, 
+						isset($programsListWithTotalParticipant11[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant11[$entry->field_programname_name_value]->total_participants : '',
+						isset($programsListWithTotalParticipant11_17[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant11_17[$entry->field_programname_name_value]->total_participants : '',
+						isset($programsListWithTotalParticipant18_24[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant18_24[$entry->field_programname_name_value]->total_participants : '',
+						isset($programsListWithTotalParticipant25[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant25[$entry->field_programname_name_value]->total_participants : '',
+						isset($programsListWithTotalParticipantUnk[$entry->field_programname_name_value]) ? $programsListWithTotalParticipantUnk[$entry->field_programname_name_value]->total_participants : '',
+				));
+		
+	}
+
+	$form['totals_info']['totals_info_counts'] = array(
+			'#markup' => theme('table', array(
+					'header' => array(
+							'<b>Programa</b>', 
+							'<b>Total Actividades</b>', 
+					'<b>Total Beneficiario < 11</b>', 
+					'<b>Total Beneficiario 11-17</b>', 
+					'<b>Total Beneficiario 18-24</b>', 
+					'<b>Total Beneficiario > 24</b>', 
+					'<b>Total Beneficiario sin edad</b>'), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 80%')))
+);
+	
+	$rows = array();
+// 	var_dump($agencyGoals);
+	array_push($rows, array('<b>Total de participantes directos únicos atendidos (11-24 años):</b>', $agencyGoals['total'], $servedDirectParticipantsTotal11_17 + $servedDirectParticipantsTotal18_24));
+	array_push($rows, array('<b>Total de participantes directos únicos atendidos de 11 a 17 años:</b>', $agencyGoals['11_17_total'], $servedDirectParticipantsTotal11_17));
+	array_push($rows, array('<b>Total de participantes directos únicos atendidos de 18 a 24 años:</b>', $agencyGoals['18_24_total'], $servedDirectParticipantsTotal18_24));
+	
+	$form['goals_info']['goals_info_global'] = array(
+			'#markup' => theme('table', array(
+					'header' => array('<b>Meta Global</b>', '<b>Meta</d>', '<b>Alcanzado</b>'), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 80%'))));
+	
+	$rows = array();
+	foreach ($programsListWithTotalOfActivities as $entry) {
+		$total11_17 = isset($programsListWithTotalParticipant11_17[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant11_17[$entry->field_programname_name_value]->total_participants : '';
+		$total18_24 = isset($programsListWithTotalParticipant18_24[$entry->field_programname_name_value]) ? $programsListWithTotalParticipant18_24[$entry->field_programname_name_value]->total_participants : '';
+		array_push(
+				$rows,
+				array(
+						$entry->field_programname_name_value,
+						isset($agencyGoals[$entry->entity_id]) ? $agencyGoals[$entry->entity_id] : '',
+						$total11_17,
+						$total18_24,
+						$total11_17 + $total18_24,
+				));
+	}
+	
+	$form['goals_info']['goals_info_program'] = array(
+			'#markup' => theme('table', array(
+					'header' => array('<b>Programa</b>', '<b>Meta</d>', '<b>Alcanzado 11-17</b>', '<b>Alcanzado 18-24</b>', '<b>Total alcanzado 11-24</b>'), 'rows' => $rows, 'attributes' =>  array('style' => 'width: 80%'))));
+	
+	
+	
+	return $form;
+}
+
+/**
+ * This is the hook implementation for _form_submit
+ * @param unknown $form
+ * @param unknown $form_state
+ */
+function ajorganizationprofile_form_submit($form, &$form_state) {
+
+
+}
+
+ /**
+  * Implements the hook_permissions
+  */
+ function ajorganizationprofile_permission() {
+	return array(
+		'access ajorganizationprofile content' => array(
+				'title' => t('Access content for ajorganizationprofile module'),
+				'description' => t('Control the access for the Beneficiary Profile'),
+		)
+	);
+ }
+
+ /**
+  *  Callback function that generates content
+  */
+function _ajorganizationprofile_page() {
+	return drupal_get_form('ajorganizationprofile_form');
+}
+
+
+function _ajorganizationprofile_getProviderId() {
+	global $user;
+
+	return db_query(
+			'SELECT field_user_provider_target_id
+			FROM {field_revision_field_user_provider}
+			WHERE entity_id = :uid', array(':uid' => $user->uid))->fetchField(0);
+}
+
+
+function _ajorganizationprofile_getDirectRegsTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			WHERE Estecolateralparticipante != :participant_type
+			AND provider_id = :provider_id', 
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí'))->rowCount();
+}
+
+
+function _ajorganizationprofile_getIndirectRegsTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			WHERE Estecolateralparticipante = :participant_type
+			AND provider_id = :provider_id',
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí'))->rowCount();
+}
+
+function _ajorganizationprofile_getServedDirectParticipantsTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			JOIN {aj_attendance} using(uuid)
+			WHERE Estecolateralparticipante != :participant_type
+			AND aj_registration.provider_id = :provider_id',
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí'))->rowCount();
+}
+
+function _ajorganizationprofile_getServedDirectParticipantsTotal11_17($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			JOIN {aj_attendance} using(uuid)
+			WHERE Estecolateralparticipante != :participant_type
+			AND aj_registration.provider_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), dob)), :year)+0 > 10
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), dob)), :year)+0 < 18', 
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí', ':format' => '%Y-%m-%d', ':year' => '%Y'))->rowCount();
+}
+
+function _ajorganizationprofile_getServedDirectParticipantsTotal18_24($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			JOIN {aj_attendance} using(uuid)
+			WHERE Estecolateralparticipante != :participant_type
+			AND aj_registration.provider_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), dob)), :year)+0 > 17
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), dob)), :year)+0 < 25',
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí', ':format' => '%Y-%m-%d', ':year' => '%Y'))->rowCount();
+}
+
+function _ajorganizationprofile_getServedIndirectParticipantsTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_registration}
+			JOIN {aj_attendance} using(uuid)
+			WHERE Estecolateralparticipante = :participant_type
+			AND aj_registration.provider_id = :provider_id',
+			array(':provider_id' => $provider_id, ':participant_type' => 'Sí'))->rowCount();
+}
+
+function _ajorganizationprofile_getParticipantSurveyTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_survey}
+			WHERE provider_id = :provider_id',
+			array(':provider_id' => $provider_id))->rowCount();
+}
+
+function _ajorganizationprofile_getMARPSurveyTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_marp}
+			WHERE provider_id = :provider_id',
+			array(':provider_id' => $provider_id))->rowCount();
+}
+
+function _ajorganizationprofile_getLaborSurveyTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_labor}
+			WHERE provider_id = :provider_id',
+			array(':provider_id' => $provider_id))->rowCount();
+}
+
+function _ajorganizationprofile_getExitSurveyTotal($provider_id) {
+	return db_query('SELECT distinct uuid
+			FROM {aj_exit}
+			WHERE provider_id = :provider_id',
+			array(':provider_id' => $provider_id))->rowCount();
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalOfActivities($provider_id) {
+	return db_query('SELECT prog_name_name.entity_id as entity_id, field_programname_name_value, count(act.entity_id) as total_activities
+		FROM field_data_field_program_provider prog_prov
+		JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+		JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+		JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+		WHERE field_program_provider_target_id = :provider_id
+		GROUP BY prog_name.entity_id
+		ORDER BY field_programname_name_value', array(':provider_id' => $provider_id))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalParticipant11($provider_id) {
+	return db_query('SELECT field_programname_name_value, count(distinct uuid) as total_participants
+			FROM field_data_field_program_provider prog_prov
+			JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+			JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+			JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+			JOIN aj_attendance atten ON atten.activity_id = act.entity_id
+			JOIN aj_registration reg using(uuid)
+			WHERE field_program_provider_target_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 < 11
+			GROUP BY prog_name.entity_id
+			ORDER BY field_programname_name_value',
+			array(':provider_id' => $provider_id, ':format' => '%Y-%m-%d', ':year' => '%Y'))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalParticipant11_17($provider_id) {
+	return db_query('SELECT field_programname_name_value, count(distinct uuid) as total_participants
+			FROM field_data_field_program_provider prog_prov
+			JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+			JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+			JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+			JOIN aj_attendance atten ON atten.activity_id = act.entity_id
+			JOIN aj_registration reg using(uuid)
+			WHERE field_program_provider_target_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 > 10
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 < 18
+			GROUP BY prog_name.entity_id
+			ORDER BY field_programname_name_value', 
+			array(':provider_id' => $provider_id, ':format' => '%Y-%m-%d', ':year' => '%Y'))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalParticipant18_24($provider_id) {
+	return db_query('SELECT field_programname_name_value, count(distinct uuid) as total_participants
+			FROM field_data_field_program_provider prog_prov
+			JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+			JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+			JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+			JOIN aj_attendance atten ON atten.activity_id = act.entity_id
+			JOIN aj_registration reg using(uuid)
+			WHERE field_program_provider_target_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 > 17
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 < 25
+			GROUP BY prog_name.entity_id
+			ORDER BY field_programname_name_value',
+			array(':provider_id' => $provider_id, ':format' => '%Y-%m-%d', ':year' => '%Y'))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalParticipant25($provider_id) {
+	return db_query('SELECT field_programname_name_value, count(distinct uuid) as total_participants
+			FROM field_data_field_program_provider prog_prov
+			JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+			JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+			JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+			JOIN aj_attendance atten ON atten.activity_id = act.entity_id
+			JOIN aj_registration reg using(uuid)
+			WHERE field_program_provider_target_id = :provider_id
+			AND DATE_FORMAT(FROM_DAYS(DATEDIFF(DATE_FORMAT(NOW(), :format), reg.dob)), :year)+0 > 24
+			GROUP BY prog_name.entity_id
+			ORDER BY field_programname_name_value',
+			array(':provider_id' => $provider_id, ':format' => '%Y-%m-%d', ':year' => '%Y'))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getProgramsListWithTotalParticipantUnk($provider_id) {
+	return db_query('SELECT field_programname_name_value, count(distinct uuid) as total_participants
+			FROM field_data_field_program_provider prog_prov
+			JOIN field_data_field_program_name prog_name ON prog_prov.entity_id = prog_name.entity_id
+			JOIN field_data_field_programname_name prog_name_name ON prog_name.field_program_name_target_id = prog_name_name.entity_id
+			JOIN field_data_field_activity_program act ON act.field_activity_program_target_id = prog_prov.entity_id
+			JOIN aj_attendance atten ON atten.activity_id = act.entity_id
+			JOIN aj_registration reg using(uuid)
+			WHERE field_program_provider_target_id = :provider_id
+			AND (reg.dob is null OR reg.dob = :empty)
+			GROUP BY prog_name.entity_id
+			ORDER BY field_programname_name_value',
+			array(':provider_id' => $provider_id, ':empty' => ''))->fetchAllAssoc('field_programname_name_value');
+}
+
+function _ajorganizationprofile_getGoals($provider_id) {
+	return db_query('SELECT *
+			FROM aj_agency_goal prog_prov
+			WHERE agency_id = :provider_id',
+			array(':provider_id' => $provider_id))->fetchAssoc();
+}
+

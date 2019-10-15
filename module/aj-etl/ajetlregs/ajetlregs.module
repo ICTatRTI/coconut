@@ -260,6 +260,27 @@ function ajetlregs_genInsertQueryPart2($doc){
             if ($val === "ERROR")
                 return "ERROR";
             $query = $query . $val . " ";
+        } else if ($key === "Estecolateralparticipante"){
+                	ajetllog_error("ajetlregs", "MESSAGE Collateral", "Estecolateralparticipante key turn", $key, $doc['provider_id']);
+            	if (array_key_exists($key, $doc)) {
+            		$val = $doc[$key];
+            		ajetllog_error("ajetlregs", "MESSAGE Collateral", "KEY FOUND", $key." value: ".$val, $doc['provider_id']);
+            		switch($val) {
+            			case "Directo":
+            				$val = "No";
+            				ajetllog_error("ajetlregs", "MESSAGE Collateral", "KEY Directo", $key." new value: ".$val, $doc['provider_id']);
+            				break;
+            			case "Indirecto";
+            				$val = "Sí";
+        					ajetllog_error("ajallregs", "MESSAGE Collateral", "CASE Indirecto", $key." new value: ".$val, $doc['provider_id']);
+            				break;
+            			default:
+            			    ajetllog_error("ajallregs", "MESSAGE Collateral", "CASE Default", $key." same value: ".$val, $doc['provider_id']);
+            				// Leave $val as is
+            		}
+            	} else
+            		$val = "";
+            	$query = $query . "'" . $val . "' ";
         }else {
             if (array_key_exists($key, $doc)) {
                 $val = $doc[$key];
@@ -830,7 +851,7 @@ function ajetlregs_processFecha($doc){
 
         // process collateral
         // TBD: first check if the index exist
-        if (array_key_exists('Estecolateralparticipante', $doc) && $doc['Estecolateralparticipante'] === 'Sí'){
+        if (array_key_exists('Estecolateralparticipante', $doc) && ($doc['Estecolateralparticipante'] === 'Sí' || $doc['Estecolateralparticipante'] === 'Indirecto')){
             // first check if exist
             if ($doc['Año'] == null || $doc['Mes'] == null || $doc['Día'] == null )
                 return " null ";

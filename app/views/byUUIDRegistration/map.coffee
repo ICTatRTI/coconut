@@ -13,4 +13,4 @@
   val += ',' +'"Municipio":"' + doc.Municipio + '"'
   val += ',' +'"BarrioComunidad":"' + doc.BarrioComunidad + '"'
 
-  emit doc.uuid, "{" + val + "}" if doc.question is "Participant Registration-es" and doc.Completado is "true" and (doc.Estecolateralparticipante is undefined or doc.Estecolateralparticipante isnt "Sí")
+  emit doc.uuid, "{" + val + "}" if doc.question is "Participant Registration-es" and doc.Completado is "true" and (doc.Estecolateralparticipante is undefined or (doc.Estecolateralparticipante isnt "Sí" and doc.Estecolateralparticipante isnt "Indirecto"))

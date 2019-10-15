@@ -1,2 +1,2 @@
 (doc) ->
-  emit doc.uuid, null  if doc.question is "Participant Registration-es" and doc.Completado is "true" and (doc.Estecolateralparticipante is undefined or doc.Estecolateralparticipante isnt "Sí")
+  emit doc.uuid, null  if doc.question is "Participant Registration-es" and doc.Completado is "true" and (doc.Estecolateralparticipante is undefined or (doc.Estecolateralparticipante isnt "Sí" and doc.Estecolateralparticipante isnt "Indirecto"))

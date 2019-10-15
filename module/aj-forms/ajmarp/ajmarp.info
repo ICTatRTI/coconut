@@ -1,0 +1,5 @@
+name = AJ MARP Form
+description = Form for collecting MARP data
+core = 7.x
+;
+configure =	admin/config/content/ajmarp
